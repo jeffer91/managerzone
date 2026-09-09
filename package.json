@@ -5,12 +5,14 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "check": "node scripts/check.js",
+    "test": "npm run check"
   },
   "keywords": ["managerzone", "electron", "football", "tactics"],
   "author": "Jeff",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^38.0.0"
+    "electron": "38.0.0"
   }
 }
