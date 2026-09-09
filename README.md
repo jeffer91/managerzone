@@ -15,7 +15,7 @@ npm start
 npm test
 ```
 
-El chequeo valida sintaxis JavaScript, archivos requeridos, orden de carga de scripts, IDs HTML, las 6 formaciones, 11 posiciones por táctica, un portero por formación, coordenadas de cancha y los datos demo.
+El chequeo valida sintaxis JavaScript, archivos requeridos, orden de carga de scripts, IDs HTML, las 6 formaciones, 11 posiciones por táctica, un portero por formación, coordenadas de cancha y los datos demo. GitHub Actions ejecuta esta auditoría automáticamente en cada cambio de `main`.
 
 ## Funciones principales
 
