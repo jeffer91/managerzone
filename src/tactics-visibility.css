@@ -1,5 +1,6 @@
 /* Tactical board readability patch */
 .pitch {
+  height: 740px;
   background: repeating-linear-gradient(
     90deg,
     #10361f 0,
@@ -54,7 +55,7 @@
   outline: 3px solid var(--green);
   outline-offset: 2px;
   background: #10261a;
-  z-index: 5;
+  z-index: 80 !important;
 }
 
 .slot-top,
@@ -141,7 +142,30 @@
   font-weight: 950;
 }
 
-.slot.role-POR { border-color: rgba(78,226,125,.86); }
+.slot.role-POR {
+  width: 146px;
+  padding: 7px 9px;
+  gap: 3px;
+  border-color: rgba(78,226,125,.86);
+  box-shadow: 0 10px 26px rgba(0,0,0,.42), 0 0 0 1px rgba(78,226,125,.08);
+}
+.slot.role-POR .slot-player {
+  min-height: 18px;
+  -webkit-line-clamp: 1;
+  font-size: 12px;
+}
+.slot.role-POR .slot-number {
+  min-width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+.slot.role-POR .slot-pos {
+  min-width: 38px;
+  padding: 4px 6px;
+}
+.slot.role-POR .slot-rating-value { font-size: 21px; }
+.slot.role-POR .slot-quality { font-size: 7.5px; }
+
 .slot.role-DEF { border-color: rgba(111,182,255,.88); }
 .slot.role-VOL { border-color: rgba(232,196,92,.90); }
 .slot.role-DEL { border-color: rgba(231,144,75,.92); }
@@ -235,7 +259,13 @@
 .bench-score.rating-low { color: var(--red); }
 
 @media (max-width: 1250px) {
+  .pitch { height: 700px; }
   .slot { width: 146px; }
   .slot.medium-density { width: 132px; }
   .slot.dense { width: 116px; }
+  .slot.role-POR { width: 140px; }
+}
+
+@media (max-width: 1050px) {
+  .pitch { height: 680px; }
 }
