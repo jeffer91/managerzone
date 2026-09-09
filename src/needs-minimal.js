@@ -1,4 +1,6 @@
 (() => {
+  'use strict';
+
   const ROLE_MAIN = {
     POR: { key: 'at', label: 'Atajando' },
     DEF: { key: 'en', label: 'Entradas' },
@@ -13,7 +15,7 @@
     DEL: 'Delantero'
   };
 
-  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const clampNeed = (n, min, max) => Math.max(min, Math.min(max, n));
 
   function ensureMinimalStyles() {
     if (document.getElementById('needs-minimal-styles')) return;
@@ -33,7 +35,7 @@
       .buy-one-score{font-size:34px;line-height:1;color:var(--green);font-weight:950;white-space:nowrap}
       .buy-minimum{margin-top:20px;padding:18px;border:1px solid #2d5438;border-radius:11px;background:#08140d}
       .buy-minimum-label{font-size:9px;color:#789080;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
-      .buy-main-min{display:flex;align-items:baseline;gap:10px;margin-top:7px}
+      .buy-main-min{display:flex;align-items:baseline;gap:10px;margin-top:7px;flex-wrap:wrap}
       .buy-main-min strong{font-size:31px;color:#fff;line-height:1}
       .buy-main-min span{font-size:12px;color:var(--green);font-weight:900}
       .buy-secondary{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
@@ -42,9 +44,46 @@
       .buy-rule strong{color:var(--green)}
       .buy-action{margin-top:18px;width:100%;padding:11px 14px}
       .buy-empty{max-width:880px;margin:0 auto;min-height:260px}
+      .market-target-hint{margin:0 0 12px;padding:10px 12px;border:1px solid #2d5438;border-radius:9px;background:#08140d;color:#9fb1a3;font-size:10px;line-height:1.45}
+      .market-target-hint b{color:var(--green)}
       @media(max-width:900px){#view-needs .needs-toolbar{flex-direction:column;align-items:stretch}.buy-one{margin:0}.buy-one-top{flex-direction:column}.buy-one-score{font-size:28px}}
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureNeedsUi() {
+    ensureMinimalStyles();
+
+    if (!document.getElementById('view-needs')) {
+      const marketView = document.getElementById('view-market');
+      const section = document.createElement('section');
+      section.id = 'view-needs';
+      section.className = 'view';
+      section.innerHTML = `
+        <div class="needs-toolbar">
+          <div>
+            <span class="eyebrow">PLAN DE CONTRATACIONES</span>
+            <h2>¿Qué jugador debo comprar?</h2>
+            <p>Una sola recomendación: el puesto más urgente y el mínimo que debe tener el jugador que compres.</p>
+          </div>
+          <label class="needs-select-wrap">Analizar para
+            <select id="needs-formation"></select>
+          </label>
+        </div>
+        <div id="needs-content"></div>`;
+      marketView.parentNode.insertBefore(section, marketView);
+    }
+
+    if (!document.querySelector('.nav-item[data-view="needs"]')) {
+      const nav = document.getElementById('main-nav');
+      const marketButton = nav.querySelector('.nav-item[data-view="market"]');
+      const button = document.createElement('button');
+      button.className = 'nav-item';
+      button.dataset.view = 'needs';
+      button.innerHTML = '<span>◎</span> Qué comprar';
+      nav.insertBefore(button, marketButton);
+      button.addEventListener('click', () => switchView('needs'));
+    }
   }
 
   function exactPosition(slot, slots) {
@@ -110,8 +149,8 @@
       .map(p => p.ratings[role])
       .sort((a, b) => b - a)[0] || 0;
 
-    const performanceGap = clamp((7.5 - weakest.score) / 4.5, 0, 1);
-    const depthGap = clamp((6.2 - backupScore) / 4.2, 0, 1);
+    const performanceGap = clampNeed((7.5 - weakest.score) / 4.5, 0, 1);
+    const depthGap = clampNeed((6.2 - backupScore) / 4.2, 0, 1);
     const agePressure = weakest.player.age >= 32 ? 1 : weakest.player.age >= 29 ? .55 : 0;
     const priority = Math.round(100 * (.68 * performanceGap + .22 * depthGap + .10 * agePressure));
 
@@ -126,6 +165,7 @@
       player: weakest.player,
       current: weakest.score,
       priority,
+      mainKey: main.key,
       mainLabel: main.label,
       minimumMain,
       minimumRating: Math.round(minimumRating * 10) / 10,
@@ -152,15 +192,37 @@
     }
   }
 
+  function setMarketTarget(first) {
+    window.MZMarketTarget = {
+      role: first.role,
+      position: first.position,
+      mainKey: first.mainKey,
+      mainLabel: first.mainLabel,
+      minimumMain: first.minimumMain,
+      minimumRating: first.minimumRating,
+      playerUid: first.player.uid,
+      current: first.current
+    };
+
+    const marketPanel = document.querySelector('#view-market .panel');
+    if (marketPanel) {
+      let hint = document.getElementById('market-target-hint');
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'market-target-hint';
+        hint.className = 'market-target-hint';
+        const form = document.getElementById('market-form');
+        marketPanel.insertBefore(hint, form);
+      }
+      hint.innerHTML = `Buscas <b>${escapeHtml(first.position)}</b>: mínimo <b>${escapeHtml(first.mainLabel)} ${first.minimumMain}+</b> y <b>${first.minimumRating.toFixed(1)}/10+ como ${first.role}</b>.`;
+    }
+  }
+
   function renderMinimalNeeds() {
-    ensureMinimalStyles();
+    ensureNeedsUi();
     const content = document.getElementById('needs-content');
     if (!content) return;
     prepareSelect();
-
-    const toolbar = document.querySelector('#view-needs .needs-toolbar');
-    const intro = toolbar?.querySelector('p');
-    if (intro) intro.textContent = 'Una sola recomendación: el puesto más urgente y el mínimo que debe tener el jugador que compres.';
 
     if (!players.length) {
       content.innerHTML = '<div class="panel empty-state buy-empty">Carga primero tu plantilla.</div>';
@@ -205,18 +267,26 @@
         <button class="ghost-btn buy-action" id="buy-one-market">Evaluar un candidato en Mercado</button>
       </article>`;
 
-    document.getElementById('buy-one-market')?.addEventListener('click', () => switchView('market'));
+    document.getElementById('buy-one-market')?.addEventListener('click', () => {
+      setMarketTarget(first);
+      switchView('market');
+    });
   }
 
-  const previousSwitchView = switchView;
-  switchView = function switchViewMinimalNeeds(name) {
-    previousSwitchView(name);
+  ensureNeedsUi();
+
+  const baseSwitchView = switchView;
+  switchView = function switchViewWithMinimalNeeds(name) {
     if (name === 'needs') {
+      $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-needs'));
+      $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === 'needs'));
       $('#page-title').textContent = 'Qué comprar';
       $('#page-subtitle').textContent = 'Una sola recomendación de compra, con el mínimo aceptable.';
       renderMinimalNeeds();
+      return;
     }
+    baseSwitchView(name);
   };
 
-  if (window.MZNeeds) window.MZNeeds.render = renderMinimalNeeds;
+  window.MZNeeds = { render: renderMinimalNeeds };
 })();
