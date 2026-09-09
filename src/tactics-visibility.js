@@ -7,19 +7,20 @@
   }
 
   function visibleY(slot) {
-    // Las tarjetas nuevas son más altas que las originales. El portero se
-    // mantiene dentro del campo y con suficiente margen inferior.
-    if (slot.role === 'POR') return Math.min(slot.y, 84);
+    // Mantener la geometría de la formación. El portero vuelve a su posición
+    // natural (91%); el CSS aumenta la altura útil del campo y compacta solo
+    // su tarjeta para que no quede cortado ni tapado por los centrales.
+    if (slot.role === 'POR') return Math.min(slot.y, 91);
     return slot.y;
   }
 
   function visualDepth(slot, y) {
-    // El portero puede quedar solapado por los centrales porque su tarjeta se
-    // renderiza antes. Le damos prioridad visual para que siempre quede encima.
-    if (slot.role === 'POR') return 50;
-    if (slot.role === 'DEF') return 30;
-    if (slot.role === 'VOL') return 20;
-    if (slot.role === 'DEL') return 10;
+    // El portero debe quedar por encima de la línea defensiva si las tarjetas
+    // llegan a rozarse visualmente.
+    if (slot.role === 'POR') return 60;
+    if (slot.role === 'DEF') return 40;
+    if (slot.role === 'VOL') return 30;
+    if (slot.role === 'DEL') return 20;
     return Math.round(y);
   }
 
