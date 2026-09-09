@@ -1,0 +1,16 @@
+{
+  "name": "managerzone-assistant",
+  "version": "1.0.0",
+  "description": "Asistente de plantilla, jugadores y tácticas para ManagerZone",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "keywords": ["managerzone", "electron", "football", "tactics"],
+  "author": "Jeff",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^38.0.0"
+  }
+}
