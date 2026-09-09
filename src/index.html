@@ -104,8 +104,8 @@
               </div>
               <button id="load-demo-btn" class="text-btn">Usar ejemplo</button>
             </div>
-            <p class="help">Acepta la tabla copiada desde ManagerZone o el Markdown exportado. La app conserva los valores originales y calcula las notas después.</p>
-            <textarea id="roster-input" spellcheck="false" placeholder="Pega aquí la tabla completa de jugadores..."></textarea>
+            <p class="help">Acepta la tabla copiada desde ManagerZone o el texto pegado directamente. La app conserva los valores originales y calcula las notas después.</p>
+            <textarea id="roster-input" spellcheck="false" placeholder="Pega aquí la plantilla completa de ManagerZone..."></textarea>
             <div class="import-actions">
               <button id="analyze-btn" class="primary-btn">Analizar plantilla</button>
               <button id="clear-input-btn" class="ghost-btn">Limpiar</button>
@@ -116,11 +116,11 @@
           <article class="panel rules-panel">
             <span class="eyebrow">MOTOR 0–10</span>
             <h3>Cómo se evalúa cada posición</h3>
-            <div class="rule-card striker"><b>DEL</b><span>Remates manda</span><strong>45%</strong></div>
-            <div class="rule-card mid"><b>VOL</b><span>Pases + equilibrio</span><strong>35%</strong></div>
-            <div class="rule-card def"><b>DEF</b><span>Entradas manda</span><strong>45%</strong></div>
-            <div class="rule-card gk"><b>POR</b><span>Atajando manda</span><strong>60%</strong></div>
-            <p class="microcopy">Los secundarios refinan la nota. El atributo principal no puede quedar oculto por una suma alta de habilidades irrelevantes para el puesto.</p>
+            <div class="rule-card striker"><b>DEL</b><span>Remates manda</span><strong>PRINCIPAL</strong></div>
+            <div class="rule-card mid"><b>VOL</b><span>Pases + equilibrio</span><strong>PRINCIPAL</strong></div>
+            <div class="rule-card def"><b>DEF</b><span>Entradas manda</span><strong>PRINCIPAL</strong></div>
+            <div class="rule-card gk"><b>POR</b><span>Atajando manda</span><strong>PRINCIPAL</strong></div>
+            <p class="microcopy">Las fórmulas usan pesos base y además protegen el atributo principal para que una suma alta de habilidades secundarias no oculte una carencia clave.</p>
           </article>
         </div>
       </section>
@@ -197,7 +197,7 @@
         <div class="section-grid two market-grid">
           <article class="panel">
             <div class="panel-head"><div><span class="eyebrow">CONTRATACIONES</span><h3>Evaluar candidato</h3></div></div>
-            <p class="help">Ingresa los atributos de un jugador del mercado. La app compara su nota con tu mejor jugador actual en cada línea.</p>
+            <p class="help">Ingresa los atributos de un jugador del mercado. Si vienes desde “Qué comprar”, la app validará el mínimo recomendado para ese puesto.</p>
             <form id="market-form" class="market-form">
               <label class="wide">Nombre<input name="name" placeholder="Jugador del mercado" required /></label>
               <label>Valor USD<input name="value" type="number" min="0" value="0" /></label>
@@ -234,6 +234,8 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="parser-patch.js"></script>
+  <script src="core-audit.js"></script>
   <script src="tactics-visibility.js"></script>
   <script src="needs-minimal.js"></script>
 </body>
