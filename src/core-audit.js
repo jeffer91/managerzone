@@ -37,8 +37,7 @@
   function requiredRoleCount(role, formationName = formationForStrength()) {
     const slots = FORMATIONS[formationName] || [];
     const count = slots.filter(s => s.role === role).length;
-    if (count) return count;
-    return role === 'POR' ? 1 : 1;
+    return count || 1;
   }
 
   averageRole = function averageRoleAudited(role, formationName = formationForStrength()) {
@@ -113,6 +112,19 @@
     note.className = 'modal-analysis';
     note.innerHTML = `<h4>Objetivo de compra</h4><p>${escapeHtml(target.position || target.role)} · mínimo <b>${escapeHtml(target.mainLabel)} ${target.minimumMain}+</b> · <b>${Number(target.minimumRating).toFixed(1)}/10+ como ${target.role}</b>.</p>`;
     panel.prepend(note);
+  };
+
+  const baseSwitchView = switchView;
+  switchView = function switchViewAudited(name) {
+    if (name === 'market' && window.MZMarketTarget) {
+      if (window.MZMarketTarget._openedOnce) {
+        delete window.MZMarketTarget;
+        document.getElementById('market-target-hint')?.remove();
+      } else {
+        window.MZMarketTarget._openedOnce = true;
+      }
+    }
+    baseSwitchView(name);
   };
 
   window.MZAuditCore = {
