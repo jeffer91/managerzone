@@ -1,6 +1,6 @@
 # MZ Tactical Lab
 
-App de escritorio en Electron para analizar plantillas de ManagerZone, puntuar jugadores por posición y comparar tácticas.
+App de escritorio en Electron para analizar plantillas de ManagerZone, puntuar jugadores por posición, comparar formaciones y orientar contrataciones.
 
 ## Ejecutar
 
@@ -9,9 +9,18 @@ npm install
 npm start
 ```
 
-## V1 funcional
+## Verificar la app
 
-- Pega la tabla de jugadores copiada/exportada desde ManagerZone.
+```bash
+npm test
+```
+
+El chequeo valida sintaxis JavaScript, archivos requeridos, orden de carga de scripts, IDs HTML, las 6 formaciones, 11 posiciones por táctica, un portero por formación, coordenadas de cancha y los datos demo.
+
+## Funciones principales
+
+- Pega la plantilla copiada directamente desde ManagerZone o una tabla exportada.
+- Parser inteligente tolerante a saltos de línea, espacios y formatos de moneda.
 - Calcula una nota de **0 a 10 por posición** para cada jugador.
 - Criterio principal:
   - **DEL:** Remates.
@@ -21,19 +30,25 @@ npm start
 - Compara automáticamente 4-3-3, 4-4-2, 4-2-3-1, 3-5-2, 5-3-2 y 3-4-3.
 - Construye el mejor XI por formación sin repetir jugadores.
 - Puntúa la táctica completa de 0 a 10.
-- Permite arrastrar jugadores en la cancha e intercambiar posiciones; la nota se recalcula inmediatamente.
-- Genera el banco en el orden funcional de ManagerZone: POR, DEF, VOL, DEL y comodín.
-- Incluye evaluador de fichajes para comparar un candidato con la plantilla actual.
-- Guarda la plantilla localmente en el equipo mediante `localStorage`.
+- Permite arrastrar jugadores e intercambiar posiciones; la nota se recalcula.
+- Genera el banco en el orden funcional de ManagerZone: POR, DEF, VOL, DEL y comodín, optimizando los cuatro puestos del banco de forma conjunta.
+- Módulo **Qué comprar**: devuelve una sola prioridad y el mínimo aceptable del fichaje.
+- El flujo **Qué comprar → Mercado** conserva el puesto y los mínimos para validar al candidato.
+- Guarda la plantilla localmente mediante `localStorage`.
 
 ## Estructura
 
-- `electron/main.js`: proceso principal y ventana Electron.
-- `electron/preload.js`: preload seguro.
-- `src/index.html`: interfaz.
-- `src/styles.css`: diseño compacto tipo cancha.
-- `src/app.js`: parser de ManagerZone, motor 0–10, optimizador de XI, tácticas y mercado.
+- `electron/main.js`: crea la ventana Electron con aislamiento de contexto, sin Node en el renderer.
+- `electron/preload.js`: información mínima y segura del escritorio.
+- `src/index.html`: interfaz y orden de carga.
+- `src/app.js`: motor base, notas, XI, tácticas y mercado.
+- `src/parser-patch.js`: importador inteligente de ManagerZone.
+- `src/core-audit.js`: validaciones de datos, necesidades por formación y flujo de mercado.
+- `src/tactics-visibility.js`: cancha, visibilidad y banco optimizado.
+- `src/needs-minimal.js`: recomendación minimalista de contratación.
+- `src/styles.css` y `src/tactics-visibility.css`: diseño.
+- `scripts/check.js`: auditoría automatizada.
 
-## Ajuste del algoritmo
+## Lógica de valoración
 
-Los pesos se encuentran en la función `ratePlayer()` de `src/app.js`. Están separados para poder afinarlos después con resultados reales del juego sin rehacer la aplicación.
+Los pesos base están en `ratePlayer()` de `src/app.js`. Además existe una protección del atributo principal para evitar que muchas habilidades secundarias compensen artificialmente una carencia crítica. Por eso la interfaz identifica el atributo como **principal** en vez de presentar el peso base como si fuera el peso efectivo final.
