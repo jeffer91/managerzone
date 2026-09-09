@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -15,6 +16,18 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
+    }
+  });
+
+  win.webContents.on('did-finish-load', () => {
+    try {
+      const patchPath = path.join(__dirname, '..', 'src', 'parser-patch.js');
+      const patchCode = fs.readFileSync(patchPath, 'utf8');
+      win.webContents.executeJavaScript(patchCode).catch((error) => {
+        console.error('No se pudo activar el parser de ManagerZone:', error);
+      });
+    } catch (error) {
+      console.error('No se pudo cargar parser-patch.js:', error);
     }
   });
 
