@@ -6,6 +6,15 @@
     return '';
   }
 
+  function visibleY(slot) {
+    // Las tarjetas nuevas son más altas que las originales. El portero estaba
+    // centrado en y=91%, por lo que parte de la ficha quedaba fuera del campo
+    // (el campo usa overflow:hidden). Lo mantenemos dentro del área y dejamos
+    // margen suficiente para que nombre, número y nota siempre sean visibles.
+    if (slot.role === 'POR') return Math.min(slot.y, 85.5);
+    return slot.y;
+  }
+
   renderPitch = function renderPitchVisible(slots, lineup) {
     const wrap = $('#pitch-slots');
 
@@ -15,6 +24,7 @@
       const quality = rate >= 7 ? 'FUERTE' : rate >= 5 ? 'MEDIA' : 'DÉBIL';
       const number = p?.id ? `#${escapeHtml(String(p.id))}` : '—';
       const density = densityClass(slots, s.role);
+      const y = visibleY(s);
       const classes = [
         'slot',
         `role-${s.role}`,
@@ -23,7 +33,7 @@
         p ? '' : 'empty'
       ].filter(Boolean).join(' ');
 
-      return `<div class="${classes}" draggable="${!!p}" data-slot="${i}" style="left:${s.x}%;top:${s.y}%" ${p ? `title="${escapeHtml(p.name)} · ${s.role} · ${rate.toFixed(1)}/10"` : ''}>
+      return `<div class="${classes}" draggable="${!!p}" data-slot="${i}" style="left:${s.x}%;top:${y}%" ${p ? `title="${escapeHtml(p.name)} · ${s.role} · ${rate.toFixed(1)}/10"` : ''}>
         <div class="slot-top">
           <span class="slot-pos">${s.role}</span>
           <span class="slot-number">${number}</span>
