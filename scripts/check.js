@@ -21,7 +21,8 @@ const jsFiles = [
   'src/parser-patch.js',
   'src/core-audit.js',
   'src/tactics-visibility.js',
-  'src/needs-minimal.js'
+  'src/needs-minimal.js',
+  'src/youth-scout.js'
 ];
 
 for (const file of jsFiles) {
@@ -99,9 +100,25 @@ if (demoMatch) {
   fail('No se encontró DEMO_DATA');
 }
 
+const needsSource = fs.readFileSync(path.join(root, 'src/needs-minimal.js'), 'utf8');
+if (/script\.src\s*=\s*['"]youth-scout\.js['"]/.test(needsSource)) ok('Qué comprar carga el módulo de juveniles y scouting');
+else fail('needs-minimal.js no carga youth-scout.js');
+
+const youthSource = fs.readFileSync(path.join(root, 'src/youth-scout.js'), 'utf8');
+if (/Number\(p\.age\)\s*<=\s*18/.test(youthSource)) ok('Juveniles limita la edad a 18 años');
+else fail('Juveniles no aplica correctamente el límite de 18 años');
+if (/allYouth\.filter\(p\s*=>\s*!mainIds\.has\(p\.uid\)\)/.test(youthSource)) ok('Juveniles excluye jugadores utilizados en el XI principal');
+else fail('Juveniles no excluye el XI principal');
+if (/SÍ COMPRAR/.test(youthSource) && /NO COMPRAR/.test(youthSource)) ok('Scout de mercado entrega decisión binaria de compra');
+else fail('Scout de mercado no entrega SÍ/NO COMPRAR');
+if (/bestAssignment\(slots, \[\.\.\.players, candidate\]\)/.test(youthSource)) ok('Scout simula cada candidato dentro del XI actual');
+else fail('Scout no simula al candidato contra la plantilla actual');
+if (/mz-ball/.test(youthSource) && /Mínimo a comprar/.test(youthSource)) ok('Qué comprar representa mínimos con balones estilo ManagerZone');
+else fail('Qué comprar no incluye la nueva visualización con balones');
+
 if (failures.length) {
   console.error(`\nAUDITORÍA FALLIDA: ${failures.length} problema(s).`);
   process.exit(1);
 }
 
-console.log('\nAUDITORÍA OK: estructura, scripts, formaciones y datos demo validados.');
+console.log('\nAUDITORÍA OK: estructura, scripts, formaciones, juveniles, scouting y datos demo validados.');
