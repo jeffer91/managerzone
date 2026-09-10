@@ -290,3 +290,10 @@
 
   window.MZNeeds = { render: renderMinimalNeeds };
 })();
+
+(() => {
+  const script = document.createElement('script');
+  script.src = 'youth-scout.js';
+  script.defer = true;
+  document.body.appendChild(script);
+})();
