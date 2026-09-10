@@ -24,6 +24,7 @@ const jsFiles = [
   'src/core-audit.js',
   'src/tactics-visibility.js',
   'src/needs-minimal.js',
+  'src/market-parser.js',
   'src/youth-scout.js'
 ];
 
@@ -46,7 +47,7 @@ assert(pkg.scripts?.start === 'electron .', 'npm start abre Electron');
 assert(pkg.scripts?.check === 'node scripts/check.js', 'npm run check ejecuta la auditoría');
 
 const html = fs.readFileSync(path.join(root, 'src/index.html'), 'utf8');
-const scriptOrder = ['engine.js','app.js','parser-patch.js','core-audit.js','tactics-visibility.js','needs-minimal.js','youth-scout.js'];
+const scriptOrder = ['engine.js','app.js','parser-patch.js','core-audit.js','tactics-visibility.js','needs-minimal.js','market-parser.js','youth-scout.js'];
 let lastIndex = -1;
 for (const script of scriptOrder) {
   const idx = html.indexOf(`src="${script}"`);
@@ -128,10 +129,76 @@ const weakRoster = [mock('gk',{POR:3.9}),...Array.from({length:10},(_,i)=>mock(`
 const weakResult = engine.bestAssignment(weakSlots,weakRoster);
 assert(Math.abs(weakResult.score - engine.tacticScore(weakSlots,weakResult.lineup)) < 1e-12, 'El optimizador y la nota final usan la misma función de utilidad');
 
+const marketParser = require(path.join(root, 'src/market-parser.js'));
+const marketFixture = `
+**20:34:39**
+Jugadores locales: **43**
+Saldo disponible: **946 242 USD**
+Activos del equipo: **1 130 366 USD**
+Valor del Equipo: **12 175 680 USD**
+Búsqueda general / filtros / ruido que debe ignorarse
+## [image](x) [Sérgio Maldini](https://www.managerzone.com/?p=players\\&pid=233854665)id: 233854665
+| Edad: | **19** |
+| Temp: | **Temporada 80** |
+| Peso: | **67 kg** |
+| Altura: | **160 cm** |
+| Pie: | **Diestro** |
+| Total de atributos: | **40** |
+| Velocidad | [Velocidad: 5](x) | (5) |
+| Resistencia | [Resistencia: 8](x) | (8) |
+| Inteligencia | [Inteligencia: 0](x) | (0) |
+| Pases | [Pases: 3](x) | (3) |
+| Remates | [Remates: 1](x) | (1) |
+| Cabezazos**1** | [Cabezazos: 8](x) | (8) |
+| Atajando**2** | [Atajando: 1](x) | (1) |
+| Control de balón**2** | [Control de balón: 3](x) | (3) |
+| Entradas**1** | [Entradas: 10](x) | (10) |
+| Pases Largos | [Pases Largos: 0](x) | (0) |
+| Balón Parado | [Balón Parado: 1](x) | (1) |
+| Experiencia | [Experiencia: 3](x) | (3) |
+| Estado físico | [Estado físico: 9](x) | (9) |
+| Valor: | **611 045 USD** | Sueldo: **11 473 USD** |
+| Club | [**Vila Belmiro**](x) |
+| Fecha límite | **09-09-2026 20:36** |
+| Precio base | **0 USD** |
+| Última oferta: | **10 612 USD** |
+## [image](x) [齐峰迪](https://www.managerzone.com/?p=players\\&pid=231721660)id: 231721660
+| Edad: | **21** |
+| Velocidad | [Velocidad: 9](x) | (9) |
+| Resistencia | [Resistencia: 9](x) | (9) |
+| Inteligencia | [Inteligencia: 2](x) | (2) |
+| Pases | [Pases: 2](x) | (2) |
+| Remates**1** | [Remates: 9](x) | (9) |
+| Cabezazos | [Cabezazos: 3](x) | (3) |
+| Atajando**2** | [Atajando: 1](x) | (1) |
+| Control de balón | [Control de balón: 7](x) | (7) |
+| Entradas | [Entradas: 2](x) | (2) |
+| Pases Largos**2** | [Pases Largos: 4](x) | (4) |
+| Balón Parado | [Balón Parado: 1](x) | (1) |
+| Experiencia | [Experiencia: 5](x) | (5) |
+| Estado físico | [Estado físico: 9](x) | (9) |
+| Valor: | **834 011 USD** | Sueldo: **8 753 USD** |
+| Club | [**东方曙光**](x) |
+| Fecha límite | **09-09-2026 20:35** |
+| Precio base | **836 884 USD** |
+| Última oferta: | **0 USD** |
+`;
+const marketParsed = marketParser.parseMarketPage(marketFixture, 123456789);
+assert(marketParsed.snapshot.hasAvailableBalance && marketParsed.snapshot.availableBalance === 946242, 'El parser detecta el saldo disponible de la página completa');
+assert(marketParsed.snapshot.teamAssets === 1130366 && marketParsed.snapshot.teamValue === 12175680, 'El parser detecta activos y valor del equipo');
+assert(marketParsed.candidates.length === 2, 'El parser separa múltiples jugadores aunque haya ruido de la página');
+const maldini = marketParsed.candidates.find(player => player.pid === '233854665');
+const chinese = marketParsed.candidates.find(player => player.pid === '231721660');
+assert(maldini?.name === 'Sérgio Maldini' && chinese?.name === '齐峰迪', 'El parser conserva nombres internacionales y PID reales');
+assert(maldini?.en === 10 && maldini?.ca === 8 && maldini?.completeStats, 'Los marcadores **1**/**2** no contaminan los valores de atributos');
+assert(maldini?.priceCurrent === 10612 && chinese?.priceCurrent === 836884, 'Precio actual usa max(precio base, última oferta)');
+assert(maldini?.club === 'Vila Belmiro' && maldini?.deadlineAt, 'El parser extrae club y fecha límite');
+
 const coreSource = fs.readFileSync(path.join(root, 'src/core-audit.js'), 'utf8');
 const needsSource = fs.readFileSync(path.join(root, 'src/needs-minimal.js'), 'utf8');
 const youthSource = fs.readFileSync(path.join(root, 'src/youth-scout.js'), 'utf8');
 const boardSource = fs.readFileSync(path.join(root, 'src/tactics-visibility.js'), 'utf8');
+const marketSource = fs.readFileSync(path.join(root, 'src/market-parser.js'), 'utf8');
 
 assert(!/switchView\s*=\s*function/.test(coreSource + needsSource + youthSource), 'Los módulos ya no encadenan sobrescrituras de switchView');
 assert(/registerView\(['"]needs['"]/.test(needsSource), 'Qué comprar usa el router central');
@@ -141,11 +208,14 @@ assert(/safePosition/.test(boardSource) && /role === 'DEF'.*76/s.test(boardSourc
 assert(/getActiveMainLineup\(\)/.test(youthSource), 'Juveniles toma como fuente el XI principal activo');
 assert(/getMainLineup\(formationName\)/.test(needsSource), 'Qué comprar usa el XI configurado de la formación');
 assert(/getMainLineup\(formationName\)/.test(youthSource), 'El scout compara contra el XI configurado');
-assert(/precio no forma parte|precio no se pondera/i.test(youthSource), 'El scout aclara que SÍ/NO es una decisión deportiva');
+assert(/MZMarketParser\.parseMarketPage/.test(youthSource), 'Jugadores a comprar usa el parser de página completa');
+assert(/NO COMPRAR AHORA/.test(youthSource) && /hasAvailableBalance/.test(youthSource), 'El scout separa mejora deportiva de disponibilidad presupuestaria');
+assert(/Mejor calidad\/precio/.test(youthSource) && /Saldo después/.test(youthSource), 'El scout muestra calidad/precio y saldo restante');
+assert(/findPlayerHeaders/.test(marketSource) && /priceCurrent/.test(marketSource), 'El parser dedicado identifica jugadores y precio actual');
 assert(/MÍNIMO OBLIGATORIO/.test(needsSource) && /Recomendado, no obligatorio/.test(needsSource), 'Qué comprar separa requisitos obligatorios de recomendaciones');
 
 if (failures.length) {
   console.error(`\nAUDITORÍA FALLIDA: ${failures.length} problema(s).`);
   process.exit(1);
 }
-console.log('\nAUDITORÍA OK: estructura, precisión, tácticas, juveniles, scouting e integración validados.');
+console.log('\nAUDITORÍA OK: estructura, precisión, tácticas, juveniles, mercado completo, presupuesto e integración validados.');
