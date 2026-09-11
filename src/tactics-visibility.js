@@ -21,11 +21,23 @@
     return ({ POR: 60, DEF: 45, VOL: 35, DEL: 25 })[role] || 20;
   }
 
+  function playerNumber(player) {
+    const explicit = String(player?.number ?? '').trim();
+    if (explicit) return explicit;
+    const legacy = String(player?.id ?? '').trim();
+    return /^\d{1,4}$/.test(legacy) ? legacy : '';
+  }
+
+  function numberBadge(player) {
+    const number = playerNumber(player);
+    return number ? `#${number}` : '—';
+  }
+
   function renderBoard(wrap, slots, lineup, options = {}) {
     if (!wrap) return;
     const interactive = options.interactive !== false;
     const onSwap = typeof options.onSwap === 'function' ? options.onSwap : null;
-    const badge = typeof options.badge === 'function' ? options.badge : player => `${player.age}a`;
+    const badge = typeof options.badge === 'function' ? options.badge : numberBadge;
 
     wrap.innerHTML = slots.map((slot, index) => {
       const player = lineup[index];
@@ -34,7 +46,7 @@
       const density = densityClass(slots, slot.role);
       const pos = safePosition(slot);
       const classes = ['slot', `role-${slot.role}`, density, player ? ratingClass(rate) : '', player ? '' : 'empty'].filter(Boolean).join(' ');
-      return `<div class="${classes}" draggable="${interactive && !!player}" data-slot="${index}" style="left:${pos.x}%;top:${pos.y}%;z-index:${visualDepth(slot.role)}" ${player ? `title="${escapeHtml(player.name)} · ${slot.role} · ${rate.toFixed(1)}/10"` : ''}>
+      return `<div class="${classes}" draggable="${interactive && !!player}" data-slot="${index}" style="left:${pos.x}%;top:${pos.y}%;z-index:${visualDepth(slot.role)}" ${player ? `title="${escapeHtml(player.name)} · N.º ${escapeHtml(playerNumber(player) || '—')} · ${slot.role} · ${rate.toFixed(1)}/10"` : ''}>
         <div class="slot-top">
           <span class="slot-pos">${slot.role}</span>
           <span class="slot-number">${player ? escapeHtml(badge(player, slot, index)) : '—'}</span>
@@ -82,7 +94,7 @@
     if (!wrap) return;
     const bench = benchPicks(roster, lineup);
     wrap.innerHTML = bench.length ? bench.map((pick, index) => `<div class="bench-item">
-      <div class="bench-head"><span class="bench-role">${index + 1} · ${pick.role === 'COM' ? 'COMODÍN' : pick.role}</span><span class="bench-number">${pick.player.age}a</span></div>
+      <div class="bench-head"><span class="bench-role">${index + 1} · ${pick.role === 'COM' ? 'COMODÍN' : pick.role}</span><span class="bench-number">${escapeHtml(numberBadge(pick.player))}</span></div>
       <strong>${escapeHtml(pick.player.name)}</strong>
       <span class="bench-score ${ratingClass(pick.score)}">${pick.score.toFixed(1)}/10</span>
     </div>`).join('') : `<div class="empty-state">${escapeHtml(options.emptyText || 'No quedan jugadores suficientes para completar el banco.')}</div>`;
@@ -104,7 +116,7 @@
     renderBenchList($('#bench-list'), players, lineup);
   };
 
-  window.MZBoard = { renderBoard, renderBenchList, benchPicks, safePosition, densityClass };
+  window.MZBoard = { renderBoard, renderBenchList, benchPicks, safePosition, densityClass, playerNumber, numberBadge };
 
   if (typeof renderTactics === 'function') {
     try { renderTactics(); } catch (error) { console.error('No se pudo renderizar la táctica:', error); }
