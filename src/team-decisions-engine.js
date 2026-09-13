@@ -11,10 +11,10 @@ if(typeof module==='object'&&module.exports){
 'use strict';
 if(!engine)throw new Error('MZEngine requerido');
 const clamp=(n,min=0,max=10)=>Math.max(min,Math.min(max,Number(n)||0));
-const avg=a=>a.length?a.reduce((s,v)=>s+(Number(v)||0),0)/a.length:0;
 const attr=(p,k)=>clamp(p?.[k],0,10);
 const COMPONENT_LABELS={positional:'Calidad en puestos',cohesion:'Cohesión del equipo',connection:'Conexión entre líneas',attack:'Creación ofensiva',defense:'Protección defensiva'};
 const COMPONENT_SHORT={positional:'Puestos',cohesion:'Cohesión',connection:'Conexión',attack:'Ataque',defense:'Defensa'};
+const NEED_KIND_LABELS={starter:'Mejora del XI',depth:'Relevo / profundidad',monitor:'Sin compra urgente'};
 
 function componentDeltas(before,after){
  const out={};for(const k of Object.keys(COMPONENT_LABELS))out[k]=(Number(after?.components?.[k])||0)-(Number(before?.components?.[k])||0);return out;
@@ -52,19 +52,25 @@ function targetAttributes(candidate,slot,slots){
  const profile=engine.slotProfile(slot,slots),weights=profile.weights||{};
  return Object.entries(weights).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([key])=>({key,label:engine.ATTR_LABELS?.[key]||key,minimum:Math.max(1,Math.min(10,Math.ceil(attr(candidate,key)))),value:attr(candidate,key)}));
 }
+function classifyNeed(gain,depthGap,agePressure){
+ if((Number(gain)||0)>=.05)return'starter';
+ if((Number(depthGap)||0)>=.35||(Number(agePressure)||0)>=.55)return'depth';
+ return'monitor';
+}
 function rankNeeds(slots,lineup,roster=[]){
  if(!Array.isArray(slots)||!Array.isArray(lineup)||lineup.length!==slots.length||lineup.some(p=>!p))return[];
- const baseline=engine.analyzeTeam(slots,lineup),bottleneck=diagnoseBottleneck(baseline),used=new Set(lineup.map(p=>p.uid));
+ const baseline=engine.analyzeTeam(slots,lineup),bottleneck=diagnoseBottleneck(baseline);
  return slots.map((slot,index)=>{
    const current=lineup[index],candidate=virtualUpgrade(current,slot,slots,index);
    const pool=lineup.filter((_,i)=>i!==index).concat(candidate);const assigned=engine.bestAssignment(slots,pool);const after=assigned.analysis||engine.analyzeTeam(slots,assigned.lineup);
    const gain=(Number(after.score)||0)-(Number(baseline.score)||0),deltas=componentDeltas(baseline,after),depth=benchDepth(roster,lineup,slot,slots);
    const depthGap=clamp((6.4-depth)/6.4,0,1),agePressure=(Number(current.age)||0)>=33?1:(Number(current.age)||0)>=30?.55:0;
-   const bottleneckGain=Math.max(0,Number(deltas[bottleneck.key])||0);
-   const impact=Math.max(0,gain)+bottleneckGain*.30+depthGap*.05+agePressure*.04;
-   const currentRating=engine.slotRating(current,slot,slots);const targetRating=engine.slotRating(candidate,slot,slots);
-   return{index,slot,role:slot.role,code:engine.slotCode(slot,slots),position:engine.slotLabel(slot,slots),player:current,currentRating,targetRating,candidate,baseline,after,gain,deltas,depth,depthGap,agePressure,bottleneck,bottleneckGain,impact,requirements:targetAttributes(candidate,slot,slots)};
- }).sort((a,b)=>b.impact-a.impact||b.gain-a.gain||a.currentRating-b.currentRating);
+   const bottleneckGain=Math.max(0,Number(deltas[bottleneck.key])||0),kind=classifyNeed(gain,depthGap,agePressure);
+   const impact=kind==='starter'?Math.max(0,gain)+bottleneckGain*.30+depthGap*.02+agePressure*.02:kind==='depth'?depthGap*.08+agePressure*.06+bottleneckGain*.01:0;
+   const currentRating=engine.slotRating(current,slot,slots),targetRating=engine.slotRating(candidate,slot,slots);
+   const reason=kind==='starter'?`Una mejora aquí aumenta el XI ${gain>=0?'+':''}${gain.toFixed(2)} y actúa sobre ${bottleneck.short.toLowerCase()}.`:kind==='depth'?'El XI no exige reemplazo inmediato, pero falta un relevo suficientemente sólido o hay presión por edad.':'No se detecta una compra urgente en este puesto.';
+   return{index,slot,role:slot.role,code:engine.slotCode(slot,slots),position:engine.slotLabel(slot,slots),player:current,currentRating,targetRating,candidate,baseline,after,gain,deltas,depth,depthGap,agePressure,bottleneck,bottleneckGain,impact,kind,kindLabel:NEED_KIND_LABELS[kind],reason,requirements:targetAttributes(candidate,slot,slots)};
+ }).sort((a,b)=>({starter:3,depth:2,monitor:1}[b.kind]-{starter:3,depth:2,monitor:1}[a.kind])||b.impact-a.impact||b.gain-a.gain||a.currentRating-b.currentRating);
 }
 function functionDefinitions(){return[
  {key:'gk',label:'Portero',score:p=>attr(p,'at')*.62+attr(p,'intel')*.15+attr(p,'exp')*.10+attr(p,'res')*.08+attr(p,'ve')*.05},
@@ -79,6 +85,27 @@ function functionalBench(roster,lineup){
  for(const f of functionDefinitions()){
    const best=remaining.filter(p=>!used.has(p.uid)).map(p=>({player:p,score:clamp(f.score(p),0,10)})).sort((a,b)=>b.score-a.score)[0];
    if(best){used.add(best.player.uid);out.push({...best,key:f.key,label:f.label});}
+ }
+ return out;
+}
+function roleScore(player,role){return Number(engine.roleRating?.(player,role)??player?.ratings?.[role])||0;}
+function selectMzBench(roster,lineup){
+ const starters=new Set((lineup||[]).filter(Boolean).map(p=>p.uid));const remaining=(roster||[]).filter(p=>!starters.has(p.uid));const used=new Set();
+ const defs=Object.fromEntries(functionDefinitions().map(f=>[f.key,f]));
+ const shield=p=>attr(p,'en')*.28+attr(p,'intel')*.24+attr(p,'res')*.20+attr(p,'pa')*.18+attr(p,'ctrl')*.10;
+ const slots=[
+  {slotRole:'POR',label:'POR · Portero',role:'POR',score:p=>defs.gk.score(p)*.75+roleScore(p,'POR')*.25},
+  {slotRole:'DEF',label:'DEF · Cobertura',role:'DEF',score:p=>defs.cover.score(p)*.70+roleScore(p,'DEF')*.30},
+  {slotRole:'VOL',label:'VOL · Organizador / equilibrio',role:'VOL',score:p=>Math.max(defs.creator.score(p),shield(p))*.70+roleScore(p,'VOL')*.30},
+  {slotRole:'DEL',label:'DEL · Rematador / apoyo',role:'DEL',score:p=>defs.finisher.score(p)*.70+roleScore(p,'DEL')*.30},
+  {slotRole:'COM',label:'Comodín · Multirol',role:null,score:p=>{const roles=['POR','DEF','VOL','DEL'].map(r=>roleScore(p,r)).sort((a,b)=>b-a);const f=Math.max(...Object.values(functionalScores(p)));return(roles[0]||0)*.55+(roles[1]||0)*.25+f*.20;}}
+ ];
+ const out=[];
+ for(const s of slots){
+  let pool=remaining.filter(p=>!used.has(p.uid));if(!pool.length)break;
+  if(s.role){const capable=pool.filter(p=>p.ratings?.bestRole===s.role||roleScore(p,s.role)>=5);if(capable.length)pool=capable;}
+  const best=pool.map(p=>({player:p,score:clamp(s.score(p),0,10)})).sort((a,b)=>b.score-a.score)[0];
+  if(best){used.add(best.player.uid);out.push({...best,slotRole:s.slotRole,label:s.label});}
  }
  return out;
 }
@@ -104,12 +131,12 @@ function saleEvaluation(formations,roster,player,activeLineup=null){
 function saleCandidates(formations,roster,activeLineup=null,limit=3){
  const list=(roster||[]).map(p=>saleEvaluation(formations,roster,p,activeLineup)).filter(x=>x&&!x.starter&&!x.protected);
  const salaries=(roster||[]).map(p=>Number(p.salary)||0).sort((a,b)=>a-b),median=salaries.length?salaries[Math.floor(salaries.length/2)]:0;
- return list.filter(x=>(Number(x.player.salary)||0)>=median).sort((a,b)=>(Number(b.player.salary)||0)-(Number(a.player.salary)||0)||a.scoreDrop-b.scoreDrop).slice(0,limit).map(x=>({uid:x.player.uid,name:x.player.name,role:x.player.ratings?.bestRole||'—',rating:x.player.ratings?.bestScore||0,salary:Number(x.player.salary)||0,value:Number(x.player.value)||0,age:Number(x.player.age)||0,scoreDrop:x.scoreDrop,reason:x.reason}));
+ return list.filter(x=>(Number(x.player.salary)||0)>=median).sort((a,b)=>(Number(b.player.salary)||0)-(Number(a.player.salary)||0)||a.scoreDrop-b.scoreDrop).slice(0,limit).map(x=>({uid:x.player.uid,name:x.player.name,role:x.player.ratings?.bestRole||'—',rating:x.player.ratings?.bestScore||0,salary:Number(x.player.salary)||0,value:Number(x.player.value)||0,age:Number(x.player.age)||0,scoreDrop:x.scoreDrop,coverageDrop:x.coverageDrop,reason:x.reason}));
 }
 function meaningfulSimulation(slots,baseline,candidate,simulate){
  const before=engine.analyzeTeam(slots,baseline),sim=simulate(slots,baseline,candidate),after=sim.analysis||((sim.afterLineup||[]).length===slots.length?engine.analyzeTeam(slots,sim.afterLineup):null);
  const rawGain=Number(sim.gain)||0,meaningfulGain=rawGain>=.05?rawGain:0;
  return{...sim,rawGain,gain:meaningfulGain,componentDeltas:after?componentDeltas(before,after):{},beforeAnalysis:before,afterAnalysis:after};
 }
-return{COMPONENT_LABELS,COMPONENT_SHORT,componentDeltas,diagnoseBottleneck,virtualUpgrade,rankNeeds,functionDefinitions,functionalScores,functionalBench,functionalCoverage,bestFormation,saleEvaluation,saleCandidates,meaningfulSimulation};
+return{COMPONENT_LABELS,COMPONENT_SHORT,NEED_KIND_LABELS,componentDeltas,diagnoseBottleneck,virtualUpgrade,classifyNeed,rankNeeds,functionDefinitions,functionalScores,functionalBench,selectMzBench,functionalCoverage,bestFormation,saleEvaluation,saleCandidates,meaningfulSimulation};
 });
