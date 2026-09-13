@@ -56,7 +56,7 @@ assert(base.analyzeTeam(closeSlots,pairLineup).components.cohesion>base.analyzeT
 const fast1=make('rapido1',{pa:7,ctrl:8,intel:6,ve:10,res:9,en:5});
 const fast2=make('rapido2',{pa:7,ctrl:8,intel:6,ve:10,res:9,en:5});
 const speedLineup=[gk,fb1,cb1,cb2,fb2,fast1,helper,fast2,extra,st1,st2];
-assert(base.analyzeTeam(farSlots,speedLineup).components.cohesion>=base.analyzeTeam(closeSlots,speedLineup).components.cohesion,'dos mediocampistas muy rápidos pueden aprovechar mejor la separación y la amplitud');
+assert(base.analyzeTeam(farSlots,speedLineup).components.attack>base.analyzeTeam(closeSlots,speedLineup).components.attack,'dos mediocampistas muy rápidos deben ganar valor ofensivo cuando pueden abrir el campo');
 
 const a=base.analyzeTeam(fourFourTwo,lineupCentral);
 assert(a&&a.components&&['positional','cohesion','connection','attack','defense'].every(k=>Number.isFinite(a.components[k])),'el análisis debe devolver las cinco notas del equipo');
