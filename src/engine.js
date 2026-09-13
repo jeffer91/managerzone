@@ -17,7 +17,69 @@
   });
 
   const ROLES = Object.freeze(['POR', 'DEF', 'VOL', 'DEL']);
+  const ATTR_LABELS = Object.freeze({
+    ve:'Velocidad', res:'Resistencia', intel:'Inteligencia', pa:'Pases', rem:'Remates', ca:'Cabezazos',
+    at:'Atajando', ctrl:'Control', en:'Entradas', pl:'Pases largos', bp:'Balón parado', exp:'Experiencia', ef:'Estado físico'
+  });
   const clamp = (n, min, max) => Math.max(min, Math.min(max, Number(n) || 0));
+
+  const SLOT_PROFILES = Object.freeze({
+    GK: {
+      role:'POR', primary:'at', gate:.15,
+      weights:{at:.60,intel:.15,exp:.10,res:.10,ve:.05},
+      requirements:[['at',7]]
+    },
+    CB: {
+      role:'DEF', primary:'en', gate:.12,
+      weights:{en:.45,intel:.18,ca:.12,res:.10,exp:.08,ctrl:.04,ve:.03},
+      requirements:[['en',7]]
+    },
+    FB: {
+      role:'DEF', primary:'en', gate:.06,
+      weights:{en:.30,ve:.20,res:.15,pa:.12,pl:.10,ctrl:.07,intel:.06},
+      requirements:[['en',7],['ve',6]]
+    },
+    WB: {
+      role:'DEF', primary:'en', gate:.04,
+      weights:{en:.25,ve:.22,res:.18,pa:.13,pl:.10,ctrl:.07,intel:.05},
+      requirements:[['en',6],['ve',7]]
+    },
+    DM: {
+      role:'VOL', primary:'pa', gate:.06,
+      weights:{pa:.25,en:.20,intel:.17,ctrl:.15,res:.12,pl:.06,ve:.05},
+      requirements:[['pa',7],['en',6]]
+    },
+    CM: {
+      role:'VOL', primary:'pa', gate:.07,
+      weights:{pa:.30,ctrl:.20,intel:.16,res:.12,en:.10,pl:.07,ve:.05},
+      requirements:[['pa',7]]
+    },
+    AM: {
+      role:'VOL', primary:'pa', gate:.05,
+      weights:{pa:.28,ctrl:.22,intel:.15,rem:.15,ve:.08,res:.06,pl:.06},
+      requirements:[['pa',7],['ctrl',6]]
+    },
+    WM: {
+      role:'VOL', primary:'pa', gate:.04,
+      weights:{pa:.24,ve:.20,ctrl:.20,res:.12,pl:.10,intel:.08,rem:.06},
+      requirements:[['pa',7],['ve',6]]
+    },
+    ST: {
+      role:'DEL', primary:'rem', gate:.15,
+      weights:{rem:.50,ctrl:.15,ca:.12,intel:.10,ve:.08,exp:.05},
+      requirements:[['rem',7]]
+    },
+    ST2: {
+      role:'DEL', primary:'rem', gate:.10,
+      weights:{rem:.43,ctrl:.17,ca:.10,intel:.10,ve:.10,pa:.10},
+      requirements:[['rem',7]]
+    },
+    WF: {
+      role:'DEL', primary:'rem', gate:.08,
+      weights:{rem:.35,pa:.20,ctrl:.20,ve:.15,intel:.10},
+      requirements:[['rem',7],['pa',6]]
+    }
+  });
 
   function ratePlayer(player) {
     const a = key => clamp(player?.[key], 0, 10);
@@ -53,8 +115,102 @@
     return clamp(player?.ratings?.[role], 0, 10);
   }
 
-  function slotUtility(player, slot, totalSlots = 11) {
-    const rating = roleRating(player, slot.role);
+  function slotType(slot, slots = []) {
+    if (!slot) return 'CM';
+    const list = Array.isArray(slots) && slots.length ? slots : [slot];
+    const same = list.filter(item => item?.role === slot.role);
+    const x = Number(slot.x) || 50;
+    const y = Number(slot.y) || 50;
+
+    if (slot.role === 'POR') return 'GK';
+    if (slot.role === 'DEF') {
+      if (same.length >= 5 && (x <= 20 || x >= 80)) return 'WB';
+      if (same.length === 4 && (x <= 25 || x >= 75)) return 'FB';
+      return 'CB';
+    }
+    if (slot.role === 'VOL') {
+      if (x <= 22 || x >= 78) return 'WM';
+      if (y >= 54) return 'DM';
+      if (y <= 40) return 'AM';
+      return 'CM';
+    }
+    if (slot.role === 'DEL') {
+      if (same.length >= 3 && (x <= 30 || x >= 70)) return 'WF';
+      if (same.length === 2) return 'ST2';
+      return 'ST';
+    }
+    return 'CM';
+  }
+
+  function slotProfile(slot, slots = []) {
+    const type = slotType(slot, slots);
+    return { type, ...SLOT_PROFILES[type] };
+  }
+
+  function slotCode(slot, slots = []) {
+    const type = slotType(slot, slots);
+    const x = Number(slot?.x) || 50;
+    if (type === 'GK') return 'POR';
+    if (type === 'CB') return 'DFC';
+    if (type === 'FB') return x < 50 ? 'LI' : 'LD';
+    if (type === 'WB') return x < 50 ? 'CAI' : 'CAD';
+    if (type === 'DM') return 'MCD';
+    if (type === 'CM') return 'MC';
+    if (type === 'AM') return 'MCO';
+    if (type === 'WM') return x < 50 ? 'MI' : 'MD';
+    if (type === 'WF') return x < 50 ? 'EI' : 'ED';
+    return 'DC';
+  }
+
+  function slotLabel(slot, slots = []) {
+    const type = slotType(slot, slots);
+    const x = Number(slot?.x) || 50;
+    if (type === 'GK') return 'Portero';
+    if (type === 'CB') return 'Defensa central';
+    if (type === 'FB') return x < 50 ? 'Lateral izquierdo' : 'Lateral derecho';
+    if (type === 'WB') return x < 50 ? 'Carrilero izquierdo' : 'Carrilero derecho';
+    if (type === 'DM') return 'Mediocentro defensivo';
+    if (type === 'CM') return 'Mediocentro';
+    if (type === 'AM') return 'Mediocentro ofensivo';
+    if (type === 'WM') return x < 50 ? 'Volante izquierdo' : 'Volante derecho';
+    if (type === 'WF') return x < 50 ? 'Extremo izquierdo' : 'Extremo derecho';
+    return 'Delantero centro';
+  }
+
+  function hasProfileAttributes(player, profile) {
+    return Object.keys(profile.weights || {}).some(key => Object.prototype.hasOwnProperty.call(player || {}, key));
+  }
+
+  function slotRating(player, slot, slots = []) {
+    if (!player || !slot) return 0;
+    const profile = slotProfile(slot, slots);
+    if (!hasProfileAttributes(player, profile)) return roleRating(player, slot.role);
+    let score = 0;
+    for (const [key, weight] of Object.entries(profile.weights || {})) score += clamp(player?.[key], 0, 10) * weight;
+    if (profile.primary && profile.gate) {
+      const primary = clamp(player?.[profile.primary], 0, 10);
+      score = score * (1 - profile.gate) + primary * profile.gate;
+    }
+    return clamp(score, 0, 10);
+  }
+
+  function slotRequirements(player, slot, slots = []) {
+    const profile = slotProfile(slot, slots);
+    return (profile.requirements || []).map(([key, floor]) => {
+      const current = clamp(player?.[key], 0, 10);
+      return {
+        key,
+        label: ATTR_LABELS[key] || key,
+        current,
+        minimum: Math.min(10, Math.max(Number(floor) || 0, Math.ceil(current + 1)))
+      };
+    });
+  }
+
+  function slotUtility(player, slot, slotsOrTotal = 11) {
+    const slots = Array.isArray(slotsOrTotal) ? slotsOrTotal : [slot];
+    const totalSlots = Array.isArray(slotsOrTotal) ? slotsOrTotal.length : Number(slotsOrTotal) || 11;
+    const rating = slotRating(player, slot, slots);
     let utility = rating;
     if (rating < CONFIG.WEAK_PLAYER_THRESHOLD) utility -= CONFIG.WEAK_PLAYER_PENALTY * totalSlots;
     if (slot.role === 'POR' && rating < CONFIG.GK_THRESHOLD) {
@@ -65,7 +221,7 @@
 
   function tacticScore(slots, lineup) {
     if (!Array.isArray(slots) || !Array.isArray(lineup) || lineup.length !== slots.length || lineup.some(player => !player)) return null;
-    const values = lineup.map((player, index) => roleRating(player, slots[index].role));
+    const values = lineup.map((player, index) => slotRating(player, slots[index], slots));
     let average = values.reduce((sum, value) => sum + value, 0) / values.length;
     average -= values.filter(value => value < CONFIG.WEAK_PLAYER_THRESHOLD).length * CONFIG.WEAK_PLAYER_PENALTY;
     const keeperIndex = slots.findIndex(slot => slot.role === 'POR');
@@ -101,8 +257,8 @@
           if (mask & (1 << slotIndex)) continue;
           const nextMask = mask | (1 << slotIndex);
           const slot = slots[slotIndex];
-          const utility = utilities[mask] + slotUtility(player, slot, S);
-          const rawTotal = rawTotals[mask] + roleRating(player, slot.role);
+          const utility = utilities[mask] + slotUtility(player, slot, slots);
+          const rawTotal = rawTotals[mask] + slotRating(player, slot, slots);
           const isBetter = utility > nextUtilities[nextMask] + CONFIG.TIE_EPSILON ||
             (Math.abs(utility - nextUtilities[nextMask]) <= CONFIG.TIE_EPSILON && rawTotal > nextRawTotals[nextMask] + CONFIG.TIE_EPSILON);
           if (isBetter) {
@@ -155,7 +311,7 @@
   }
 
   function lineupMetrics(slots, lineup) {
-    const values = lineup.map((player, index) => player ? roleRating(player, slots[index].role) : 0).sort((a, b) => a - b);
+    const values = lineup.map((player, index) => player ? slotRating(player, slots[index], slots) : 0).sort((a, b) => a - b);
     const weakest = values[0] || 0;
     const bottom = values.slice(0, Math.min(3, values.length));
     const bottom3 = bottom.length ? bottom.reduce((sum, value) => sum + value, 0) / bottom.length : 0;
@@ -268,9 +424,17 @@
   return {
     CONFIG,
     ROLES,
+    ATTR_LABELS,
+    SLOT_PROFILES,
     clamp,
     ratePlayer,
     roleRating,
+    slotType,
+    slotProfile,
+    slotCode,
+    slotLabel,
+    slotRating,
+    slotRequirements,
     slotUtility,
     tacticScore,
     bestAssignment,
