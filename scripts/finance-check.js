@@ -1,7 +1,11 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
 const parser = require('../src/finance-parser.js');
 const engine = require('../src/finance-engine.js');
 
+const root = path.resolve(__dirname, '..');
 const fixture = `
 Total 374 694 USD
 Ingresos 934 457 USD
@@ -30,9 +34,33 @@ Partidos locales de Ligas Juveniles 0 0
 Partidos Amistosos de local 0 / 2 0 / 2
 `;
 
+for (const file of ['src/finance-parser.js','src/finance-engine.js','src/finance-view.js']) {
+  assert(fs.existsSync(path.join(root,file)),`${file} debe existir`);
+  execFileSync(process.execPath,['--check',path.join(root,file)],{stdio:'pipe'});
+}
+assert(fs.existsSync(path.join(root,'src/finance.css')),'src/finance.css debe existir');
+
+const html = fs.readFileSync(path.join(root,'src/index.html'),'utf8');
+assert(html.includes('href="finance.css"'),'index.html carga finance.css');
+assert(html.includes('id="view-finance"'),'Existe la vista Finanzas');
+assert(html.includes('data-view="finance"'),'Existe navegación a Finanzas');
+let previous=-1;
+for (const script of ['market-parser.js','finance-parser.js','finance-engine.js','finance-view.js']) {
+  const current=html.indexOf(`src="${script}"`);
+  assert(current>previous,`${script} debe cargarse en el orden correcto`);
+  previous=current;
+}
+
+const viewSource=fs.readFileSync(path.join(root,'src/finance-view.js'),'utf8');
+assert(viewSource.includes('registerResetHandler(resetModule)'),'Finanzas participa en el reinicio general');
+assert(viewSource.includes('p.warnings'),'La vista financiera muestra observaciones del parser');
+assert(viewSource.includes('snapshotStatus'),'La vista valida la antigüedad del saldo');
+assert(viewSource.includes('financeReady=p.complete&&p.warnings.length===0'),'Un reporte con observaciones no se guarda como reporte válido');
+
 const parsed = parser.parseFinanceReport(fixture, 123456);
 assert.equal(parsed.valid, true);
 assert.equal(parsed.complete, true);
+assert.equal(parsed.warnings.length,0);
 assert.equal(parsed.report.income.total, 934457);
 assert.equal(parsed.report.expenses.total, 559763);
 assert.equal(parsed.report.accountingResult, 374694);
@@ -41,6 +69,9 @@ assert.equal(parsed.report.weeklyCosts.players, 184680);
 assert.equal(parsed.report.matches.seniorLeagueHome.current, 1);
 assert.equal(parsed.report.matches.friendliesHome.current, 0);
 assert.equal(parsed.report.matches.friendliesHome.maximum, 2);
+
+const inconsistent = parser.parseFinanceReport(fixture.replace('Ingresos 934 457 USD','Ingresos 999 999 USD'),123456);
+assert(inconsistent.warnings.some(item=>item.includes('ingresos')),'El parser advierte si el detalle de ingresos no coincide');
 
 const players = [
   {uid:'a',name:'Titular',salary:20000,value:500000,age:25,ratings:{bestRole:'DEL',bestScore:8.2}},
@@ -56,4 +87,13 @@ assert.equal(result.weeklyCost,246875);
 assert.equal(result.safeBudget,12500);
 assert(result.recommendations.some(item=>item.title.includes('gastos fijos')));
 assert(result.saleCandidates.some(item=>item.uid==='b'));
-console.log('✓ Finance parser and engine OK');
+
+const hour=60*60*1000;
+const snapshot={hasAvailableBalance:true,availableBalance:946242,capturedAt:100000};
+const fresh=engine.snapshotStatus(snapshot,100000+23*hour);
+const stale=engine.snapshotStatus(snapshot,100000+25*hour);
+assert.equal(fresh.fresh,true,'Un saldo menor a 24 horas se considera vigente');
+assert.equal(stale.stale,true,'Un saldo mayor a 24 horas se considera desactualizado');
+assert.equal(stale.balance,946242,'La antigüedad no altera el valor guardado del saldo');
+
+console.log('✓ Finance parser, engine and UI integration OK');
