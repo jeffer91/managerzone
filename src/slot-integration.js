@@ -115,6 +115,23 @@
     return slots.map((slot,index)=>({slot,index,score:MZEngine.slotRating(candidate,slot,slots)})).sort((a,b)=>b.score-a.score)[0]||null;
   }
 
+  function financePolicy(snapshot){
+    const cashKnown=Boolean(snapshot?.hasAvailableBalance);
+    const cash=Number(snapshot?.availableBalance)||0;
+    let safeBudget=null,reserveWeeks=null;
+    try{
+      const history=window.MZFinance?.history?.()||[];
+      const latest=history.slice().sort((a,b)=>(Number(b.savedAt)||0)-(Number(a.savedAt)||0))[0];
+      if(cashKnown&&latest?.report&&window.MZFinanceEngine?.analyze){
+        reserveWeeks=Number(localStorage.getItem('mz_tactical_lab_finance_reserve_weeks_v1'))||4;
+        const a=MZFinanceEngine.analyze(latest.report,{players,lineup:getActiveMainLineup(),availableBalance:cash,reserveWeeks});
+        if(Number.isFinite(Number(a.safeBudget)))safeBudget=Math.max(0,Number(a.safeBudget));
+      }
+    }catch{}
+    const spendable=cashKnown?(safeBudget==null?cash:Math.min(cash,safeBudget)):null;
+    return {cashKnown,cash,safeBudget,reserveWeeks,spendable,usesSafeBudget:safeBudget!=null};
+  }
+
   function evaluateCandidate(candidate,formationName,baseline,snapshot){
     const slots=FORMATIONS[formationName];
     const sim=MZEngine.simulateCandidate(slots,baseline,candidate);
@@ -127,19 +144,24 @@
     const candidateRating=slot?MZEngine.slotRating(candidate,slot,slots):candidate.ratings.bestScore;
     const compareRating=compare&&slot?MZEngine.slotRating(compare,slot,slots):0;
     const roleDelta=candidateRating-compareRating;
-    const sporting=Boolean(sim.enters&&sim.gain>=MZ_CONFIG.BUY_MIN_TACTIC_GAIN);
-    const budgetKnown=Boolean(snapshot?.hasAvailableBalance);
-    const balance=Number(snapshot?.availableBalance)||0;
-    const priceNow=Math.max(Number(candidate.priceBase)||0,Number(candidate.lastOffer)||0);
-    const affordable=!budgetKnown||priceNow<=balance;
-    const decision=sporting?(affordable?'buy':'later'):'no';
     const fit=targetFit(candidate,formationName);
+    const starterSporting=Boolean(sim.enters&&sim.gain>=MZ_CONFIG.BUY_MIN_TACTIC_GAIN);
+    const depthSporting=Boolean(target?.needKind==='depth'&&fit?.meets&&candidateRating>=Number(target.minimumRating||0));
+    const sporting=starterSporting||depthSporting;
+    const purchaseMode=starterSporting?'starter':depthSporting?'depth':'none';
+    const policy=financePolicy(snapshot);
+    const priceNow=Math.max(Number(candidate.priceBase)||0,Number(candidate.lastOffer)||0);
+    const affordable=!policy.cashKnown||priceNow<=Number(policy.spendable||0);
+    const decision=sporting?(affordable?'buy':'later'):'no';
+    const budgetAfter=policy.cashKnown?policy.cash-priceNow:null;
+    const safeBudgetAfter=policy.safeBudget==null?null:policy.safeBudget-priceNow;
     return {
       candidate,formationName,slots,baseline,...sim,slot,slotIndex,compare,candidateRating,compareRating,roleDelta,
       code:slot?MZEngine.slotCode(slot,slots):candidate.ratings.bestRole,
       position:slot?MZEngine.slotLabel(slot,slots):candidate.ratings.bestRole,
-      sporting,budgetKnown,balance,affordable,decision,targetFit:fit,budgetAfter:budgetKnown?balance-priceNow:null,
-      efficiency:sporting?(sim.gain*100000)/Math.max(priceNow,1000):0,priceNow
+      sporting,starterSporting,depthSporting,purchaseMode,budgetKnown:policy.cashKnown,balance:policy.cash,safeBudget:policy.safeBudget,
+      spendableBudget:policy.spendable,usesSafeBudget:policy.usesSafeBudget,reserveWeeks:policy.reserveWeeks,affordable,decision,targetFit:fit,budgetAfter,safeBudgetAfter,
+      efficiency:starterSporting?(sim.gain*100000)/Math.max(priceNow,1000):depthSporting?(candidateRating*1000)/Math.max(priceNow,1000):0,priceNow
     };
   }
 
@@ -161,29 +183,37 @@
     return`Termina en ${Math.floor(hours/24)} d ${hours%24} h`;
   }
 
-  function decisionLabel(result){return result.decision==='buy'?'SÍ COMPRAR':result.decision==='later'?'NO COMPRAR AHORA':'NO COMPRAR';}
+  function decisionLabel(result){
+    if(result.decision==='buy')return result.purchaseMode==='depth'?'SÍ · RELEVO':'SÍ COMPRAR';
+    if(result.decision==='later')return result.purchaseMode==='depth'?'ESPERAR · RELEVO':'NO COMPRAR AHORA';
+    return'NO COMPRAR';
+  }
 
   function renderTargetBanner(formationName){
     const wrap=document.getElementById('scout-target');if(!wrap)return;
     const target=targetForFormation(formationName);
     if(!target){wrap.innerHTML='';return;}
     const reqs=(target.requirements||[]).map(r=>`${r.label||MZEngine.ATTR_LABELS[r.key]||r.key} ${r.minimum}+`).join(' · ');
-    wrap.innerHTML=`<div class="scout-target">Prioridad detectada en “Qué comprar”: <b>${esc(target.position)}</b> · <b>${esc(reqs||`${target.mainLabel} ${target.minimumMain}+`)}</b> · <b>${Number(target.minimumRating).toFixed(1)}/10+ en este puesto</b>.</div>`;
+    const kind=target.needKind==='depth'?'Relevo / profundidad':'Mejora del XI';
+    wrap.innerHTML=`<div class="scout-target">Prioridad detectada en “Qué comprar”: <b>${esc(kind)}</b> · <b>${esc(target.position)}</b> · <b>${esc(reqs||`${target.mainLabel} ${target.minimumMain}+`)}</b> · <b>${Number(target.minimumRating).toFixed(1)}/10+ en este puesto</b>.</div>`;
   }
 
   function marketCard(result,index){
     const c=result.candidate,compare=result.compare,fit=result.targetFit;
     const remaining=result.budgetKnown?usd(Math.max(0,result.budgetAfter)):'—';
+    const safeRemaining=result.safeBudgetAfter==null?'—':usd(Math.max(0,result.safeBudgetAfter));
     let reason;
-    if(!result.sporting)reason=`${esc(c.name)} no mejora suficientemente la nota de tu XI en una posición exacta.`;
-    else if(result.decision==='later')reason=`${esc(c.name)} sí mejora deportivamente tu XI, pero su precio actual supera el saldo detectado.`;
+    if(!result.sporting)reason=`${esc(c.name)} no mejora suficientemente el XI ni cumple una necesidad de relevo prioritaria.`;
+    else if(result.decision==='later')reason=result.usesSafeBudget?`${esc(c.name)} es útil deportivamente, pero ${usd(result.priceNow)} supera tu presupuesto seguro de ${usd(result.spendableBudget)} aunque tengas ${usd(result.balance)} en caja.`:`${esc(c.name)} es útil deportivamente, pero su precio actual supera el saldo detectado.`;
+    else if(result.purchaseMode==='depth')reason=`${esc(c.name)} cumple el perfil de relevo para ${esc(result.position)} sin exigir reemplazar al titular actual.`;
     else reason=`${esc(c.name)} entra como ${esc(result.code)} · ${esc(result.position)} y mejora la táctica ${result.beforeScore.toFixed(2)} → ${result.afterScore.toFixed(2)}.`;
+    const gainText=result.purchaseMode==='depth'&&!result.starterSporting?`RELEVO · ${result.candidateRating.toFixed(1)}`:`${result.gain>=0?'+':''}${result.gain.toFixed(2)} táctica`;
     return `<article class="candidate-card ${result.decision}${index===0&&result.decision==='buy'?' open':''}">
       <div class="candidate-head">
         <div class="candidate-name"><strong>${esc(c.name)}</strong><small>${c.age} años · ${esc(c.club||'Club no detectado')} · PID ${esc(c.pid||c.id)}</small></div>
         <div class="candidate-role">${esc(result.code)} · ${result.candidateRating.toFixed(1)}</div>
         <div class="candidate-vs">vs. <b>${compare?esc(compare.name):'Sin comparable'}</b>${compare?` · ${result.compareRating.toFixed(1)}`:''}</div>
-        <div class="candidate-gain ${result.sporting?'positive':''}">${result.gain>=0?'+':''}${result.gain.toFixed(2)} táctica</div>
+        <div class="candidate-gain ${result.sporting?'positive':''}">${gainText}</div>
         <div class="decision ${result.decision}">${decisionLabel(result)}</div>
       </div>
       <div class="candidate-detail">
@@ -200,8 +230,8 @@
         ${fit?`<div class="candidate-foot">${fit.details.map(r=>`<span>${esc(r.label)}: <b>${r.value}/${r.minimum}+</b></span>`).join('')}<span>Nota posicional: <b>${fit.rating.toFixed(1)}/${Number(window.MZMarketTarget.minimumRating).toFixed(1)}+</b></span></div>`:''}
         <div class="market-detail">
           <div><span>Precio base</span><b>${usd(c.priceBase||0)}</b></div><div><span>Última oferta</span><b>${usd(c.lastOffer||0)}</b></div>
-          <div><span>Precio actual</span><b>${usd(result.priceNow)}</b><small>${result.budgetKnown?(result.affordable?'Dentro del presupuesto':'Fuera del presupuesto'):'Sin saldo detectado'}</small></div>
-          <div><span>Saldo después</span><b>${remaining}</b></div><div><span>Valor MZ</span><b>${usd(c.value||0)}</b></div><div><span>Sueldo</span><b>${usd(c.salary||0)}</b></div>
+          <div><span>Precio actual</span><b>${usd(result.priceNow)}</b><small>${result.budgetKnown?(result.affordable?(result.usesSafeBudget?'Dentro del presupuesto seguro':'Dentro del saldo'):(result.usesSafeBudget?'Supera presupuesto seguro':'Fuera del saldo')):'Sin saldo detectado'}</small></div>
+          <div><span>Saldo después</span><b>${remaining}</b></div>${result.safeBudget!=null?`<div><span>Margen seguro después</span><b>${safeRemaining}</b><small>Reserva ${result.reserveWeeks||4} semanas</small></div>`:''}<div><span>Valor MZ</span><b>${usd(c.value||0)}</b></div><div><span>Sueldo</span><b>${usd(c.salary||0)}</b></div>
           <div><span>Fecha límite</span><b>${esc(marketDeadline(c))}</b></div><div><span>Puesto evaluado</span><b>${esc(result.code)} · ${esc(result.position)}</b></div>
         </div><div class="candidate-reason"><b>Conclusión:</b> ${reason}</div>
       </div></article>`;
@@ -220,18 +250,18 @@
   function renderMarketResults(){
     const wrap=document.getElementById('scout-results');if(!wrap)return;
     if(!marketState.parsed||!marketState.results.length){wrap.innerHTML='';return;}
-    const snapshot=marketState.parsed.snapshot;
+    const snapshot=marketState.parsed.snapshot,policy=financePolicy(snapshot);
     const buy=marketState.results.filter(r=>r.decision==='buy');
-    const sporting=marketState.results.filter(r=>r.sporting).sort((a,b)=>b.gain-a.gain);
-    const value=buy.filter(r=>r.gain>0).sort((a,b)=>b.efficiency-a.efficiency)[0]||null;
+    const sporting=marketState.results.filter(r=>r.sporting).sort((a,b)=>b.gain-a.gain||b.candidateRating-a.candidateRating);
+    const value=buy.filter(r=>r.efficiency>0).sort((a,b)=>b.efficiency-a.efficiency)[0]||null;
     const positions=[...new Set(marketState.results.map(r=>r.code))].sort();
     const shown=filteredMarket();
     const counts={all:marketState.results.length,buy:buy.length,later:marketState.results.filter(r=>r.decision==='later').length,no:marketState.results.filter(r=>r.decision==='no').length};
     wrap.innerHTML=`<div class="market-snapshot">
-      <div class="snapshot-card"><span>Saldo disponible</span><strong>${snapshot.hasAvailableBalance?usd(snapshot.availableBalance):'No detectado'}</strong></div>
-      <div class="snapshot-card best"><span>Mejor compra</span><strong>${buy[0]?esc(buy[0].candidate.name):'Ninguna'}</strong><small>${buy[0]?`${esc(buy[0].code)} · +${buy[0].gain.toFixed(2)} · ${usd(buy[0].priceNow)}`:'Ningún candidato mejora y entra en presupuesto.'}</small></div>
-      <div class="snapshot-card"><span>Mayor mejora deportiva</span><strong>${sporting[0]?esc(sporting[0].candidate.name):'Ninguna'}</strong><small>${sporting[0]?`${esc(sporting[0].position)} · +${sporting[0].gain.toFixed(2)}`:'Nadie mejora suficientemente el XI.'}</small></div>
-      <div class="snapshot-card"><span>Mejor calidad/precio</span><strong>${value?esc(value.candidate.name):'Ninguna'}</strong><small>${value?`+${value.efficiency.toFixed(2)} de táctica por $100k`:'Sin opción positiva dentro del presupuesto.'}</small></div></div>
+      <div class="snapshot-card"><span>Saldo disponible</span><strong>${snapshot.hasAvailableBalance?usd(snapshot.availableBalance):'No detectado'}</strong><small>${policy.safeBudget!=null?`Presupuesto seguro ${usd(policy.spendable)} · reserva ${policy.reserveWeeks} semanas`:'Sin reporte financiero para calcular reserva'}</small></div>
+      <div class="snapshot-card best"><span>Mejor compra</span><strong>${buy[0]?esc(buy[0].candidate.name):'Ninguna'}</strong><small>${buy[0]?`${esc(buy[0].code)} · ${buy[0].purchaseMode==='depth'?'relevo':`+${buy[0].gain.toFixed(2)}`} · ${usd(buy[0].priceNow)}`:'Ningún candidato útil entra en el presupuesto seguro.'}</small></div>
+      <div class="snapshot-card"><span>Mayor mejora deportiva</span><strong>${sporting[0]?esc(sporting[0].candidate.name):'Ninguna'}</strong><small>${sporting[0]?`${esc(sporting[0].position)} · ${sporting[0].purchaseMode==='depth'?'relevo útil':`+${sporting[0].gain.toFixed(2)}`}`:'Nadie mejora suficientemente el XI ni cubre un relevo prioritario.'}</small></div>
+      <div class="snapshot-card"><span>Mejor calidad/precio</span><strong>${value?esc(value.candidate.name):'Ninguna'}</strong><small>${value?`${value.purchaseMode==='starter'?`+${value.gain.toFixed(2)} táctica`:'relevo válido'} · ${usd(value.priceNow)}`:'Sin opción positiva dentro del presupuesto.'}</small></div></div>
       <div class="scout-filters">${[['all','Todos'],['buy','Sí comprar'],['later','No comprar ahora'],['no','No comprar']].map(([k,l])=>`<button class="scout-filter ${marketState.filter===k?'active':''}" data-filter="${k}">${l} · ${counts[k]}</button>`).join('')}
       <select id="scout-role-filter" class="scout-role-filter"><option value="ALL">Todas las posiciones</option>${positions.map(p=>`<option value="${esc(p)}" ${marketState.position===p?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
       <div class="candidate-list">${shown.length?shown.map(marketCard).join(''):'<div class="scout-empty">No hay jugadores que coincidan con estos filtros.</div>'}</div>`;
@@ -259,8 +289,8 @@
       return a.priceNow-b.priceNow;
     });
     marketState.filter='all';marketState.position='ALL';
-    const sporting=marketState.results.filter(r=>r.sporting).length,buy=marketState.results.filter(r=>r.decision==='buy').length;
-    msg.textContent=`${parsed.candidates.length} jugadores analizados · ${sporting} mejoran tu XI · ${buy} comprables ahora${parsed.snapshot.hasAvailableBalance?` · saldo ${usd(parsed.snapshot.availableBalance)}`:' · saldo no detectado'}`;
+    const useful=marketState.results.filter(r=>r.sporting).length,buy=marketState.results.filter(r=>r.decision==='buy').length,policy=financePolicy(parsed.snapshot);
+    msg.textContent=`${parsed.candidates.length} jugadores analizados · ${useful} útiles para la necesidad · ${buy} comprables ahora${parsed.snapshot.hasAvailableBalance?` · saldo ${usd(parsed.snapshot.availableBalance)}${policy.safeBudget!=null?` · seguro ${usd(policy.spendable)}`:''}`:' · saldo no detectado'}`;
     msg.className='scout-msg ok';renderMarketResults();
   }
 
@@ -285,7 +315,7 @@
 
   if(window.MZYouthScout?.renderScout){
     registerView('market',VIEW_META.market,renderMarketSlotAware);
-    window.MZSlotIntegration={renderMarket:renderMarketSlotAware,evaluateCandidate,targetFit,positionalSaleCandidates,exactWeakest};
+    window.MZSlotIntegration={renderMarket:renderMarketSlotAware,evaluateCandidate,targetFit,positionalSaleCandidates,exactWeakest,financePolicy};
   }
 
   if(players?.length){renderDashboard();renderTactics();}
