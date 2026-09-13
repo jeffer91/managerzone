@@ -1,5 +1,17 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
 const engine = require('../src/engine.js');
+
+const root = path.resolve(__dirname, '..');
+for (const file of ['src/engine.js','src/slot-aware-ui.js','src/needs-minimal.js']) {
+  assert(fs.existsSync(path.join(root,file)),`${file} debe existir`);
+  execFileSync(process.execPath,['--check',path.join(root,file)],{stdio:'pipe'});
+}
+const html = fs.readFileSync(path.join(root,'src/index.html'),'utf8');
+assert(html.includes('src="slot-aware-ui.js"'),'index.html debe cargar slot-aware-ui.js');
+assert(html.indexOf('src="tactics-visibility.js"') < html.indexOf('src="slot-aware-ui.js"'),'slot-aware-ui.js debe cargarse después del renderer táctico');
 
 const front3 = [
   {role:'DEL',x:18,y:22},
@@ -31,4 +43,18 @@ assert(engine.tacticScore(front3,best.lineup)>engine.tacticScore(front3,swapped)
 
 const req=engine.slotRequirements(creator,front3[0],front3).map(x=>x.key);
 assert(req.includes('rem')&&req.includes('pa'));
-console.log('✓ Exact-position tactical engine OK');
+
+const back4=[
+  {role:'DEF',x:18,y:72},{role:'DEF',x:39,y:77},{role:'DEF',x:61,y:77},{role:'DEF',x:82,y:72}
+];
+assert.equal(engine.slotCode(back4[0],back4),'LI');
+assert.equal(engine.slotCode(back4[1],back4),'DFC');
+assert.equal(engine.slotCode(back4[3],back4),'LD');
+
+const midfield433=[
+  {role:'VOL',x:26,y:48},{role:'VOL',x:50,y:55},{role:'VOL',x:74,y:48}
+];
+assert.equal(engine.slotCode(midfield433[0],midfield433),'MC');
+assert.equal(engine.slotCode(midfield433[1],midfield433),'MCD');
+
+console.log('✓ Exact-position tactical engine and UI integration OK');
