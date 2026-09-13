@@ -4,6 +4,8 @@ const spatial=require('../src/spatial-engine.js');
 spatial.install(base);
 const team=require('../src/team-engine.js');
 team.install(base);
+const tuning=require('../src/team-engine-tuning.js');
+tuning.install(base);
 
 const make=(uid,a)=>{const p={uid,name:uid,age:24,ve:5,res:5,intel:5,pa:5,rem:5,ca:5,at:1,ctrl:5,en:5,pl:5,bp:1,exp:5,ef:7,...a};p.ratings=base.ratePlayer(p);return p;};
 
