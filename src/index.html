@@ -7,6 +7,7 @@
   <title>MZ Tactical Lab</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="tactics-visibility.css" />
+  <link rel="stylesheet" href="finance.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -22,6 +23,7 @@
         <button class="nav-item" data-view="squad"><span>👥</span> Plantilla</button>
         <button class="nav-item" data-view="tactics"><span>▦</span> Tácticas</button>
         <button class="nav-item" data-view="youth"><span>⚑</span> Juveniles</button>
+        <button class="nav-item" data-view="finance"><span>◫</span> Finanzas</button>
         <button class="nav-item" data-view="needs"><span>◎</span> Qué comprar</button>
         <button class="nav-item" data-view="market"><span>⇄</span> Jugadores a comprar</button>
       </nav>
@@ -94,6 +96,7 @@
       </section>
 
       <section id="view-youth" class="view"></section>
+      <section id="view-finance" class="view"></section>
       <section id="view-needs" class="view"></section>
       <section id="view-market" class="view"></section>
     </main>
@@ -109,5 +112,8 @@
   <script src="needs-minimal.js"></script>
   <script src="market-parser.js"></script>
   <script src="youth-scout.js"></script>
+  <script src="finance-parser.js"></script>
+  <script src="finance-engine.js"></script>
+  <script src="finance-view.js"></script>
 </body>
 </html>
