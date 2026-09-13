@@ -30,7 +30,7 @@
 
       <div class="sidebar-note">
         <small>Regla del motor</small>
-        <p><b>DEL</b> Remates · <b>VOL</b> Pases + equilibrio · <b>DEF</b> Entradas · <b>POR</b> Atajando</p>
+        <p><b>DC</b> Remates · <b>EI/ED</b> Remates + pases · <b>MC</b> Pases · <b>DFC</b> Entradas</p>
       </div>
     </aside>
 
@@ -67,11 +67,11 @@
           </article>
           <article class="panel rules-panel">
             <span class="eyebrow">MOTOR 0–10</span><h3>Cómo se evalúa cada posición</h3>
-            <div class="rule-card striker"><b>DEL</b><span>Remates manda</span><strong>PRINCIPAL</strong></div>
-            <div class="rule-card mid"><b>VOL</b><span>Pases + equilibrio</span><strong>PRINCIPAL</strong></div>
-            <div class="rule-card def"><b>DEF</b><span>Entradas manda</span><strong>PRINCIPAL</strong></div>
+            <div class="rule-card striker"><b>DC</b><span>Remates manda</span><strong>PRINCIPAL</strong></div>
+            <div class="rule-card mid"><b>EI/ED</b><span>Remates + pases + control</span><strong>POSICIONAL</strong></div>
+            <div class="rule-card def"><b>DFC/LAT</b><span>Entradas con función distinta</span><strong>POSICIONAL</strong></div>
             <div class="rule-card gk"><b>POR</b><span>Atajando manda</span><strong>PRINCIPAL</strong></div>
-            <p class="microcopy">El motor conserva precisión completa para decidir y redondea solo al mostrar resultados.</p>
+            <p class="microcopy">La nota cambia según el lugar exacto del jugador en la cancha, no solo por línea.</p>
           </article>
         </div>
       </section>
@@ -109,6 +109,7 @@
   <script src="parser-patch.js"></script>
   <script src="core-audit.js"></script>
   <script src="tactics-visibility.js"></script>
+  <script src="slot-aware-ui.js"></script>
   <script src="needs-minimal.js"></script>
   <script src="market-parser.js"></script>
   <script src="youth-scout.js"></script>
