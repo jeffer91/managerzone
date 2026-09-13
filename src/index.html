@@ -14,61 +14,20 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-ball">MZ</div><div><strong>Tactical Lab</strong><span>ManagerZone Assistant</span></div></div>
       <nav id="main-nav" class="nav">
-        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Inicio</button>
-        <button class="nav-item" data-view="import"><span>⇩</span> Cargar plantilla</button>
-        <button class="nav-item" data-view="squad"><span>👥</span> Plantilla</button>
-        <button class="nav-item" data-view="tactics"><span>▦</span> Tácticas</button>
-        <button class="nav-item" data-view="youth"><span>⚑</span> Juveniles</button>
-        <button class="nav-item" data-view="finance"><span>◫</span> Finanzas</button>
-        <button class="nav-item" data-view="needs"><span>◎</span> Qué comprar</button>
-        <button class="nav-item" data-view="market"><span>⇄</span> Jugadores a comprar</button>
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Inicio</button><button class="nav-item" data-view="import"><span>⇩</span> Cargar plantilla</button><button class="nav-item" data-view="squad"><span>👥</span> Plantilla</button><button class="nav-item" data-view="tactics"><span>▦</span> Tácticas</button><button class="nav-item" data-view="youth"><span>⚑</span> Juveniles</button><button class="nav-item" data-view="finance"><span>◫</span> Finanzas</button><button class="nav-item" data-view="needs"><span>◎</span> Qué comprar</button><button class="nav-item" data-view="market"><span>⇄</span> Jugadores a comprar</button>
       </nav>
       <div class="sidebar-note"><small>Motor de equipo</small><p><b>Puestos + cohesión + conexión + ataque + defensa.</b></p></div>
     </aside>
     <main class="main">
       <header class="topbar"><div><h1 id="page-title">Inicio</h1><p id="page-subtitle">Decisiones basadas en tus atributos reales de ManagerZone.</p></div><div class="topbar-actions"><div class="status-pill"><span id="player-count">0</span> jugadores</div><button id="reset-btn" class="ghost-btn" title="Borrar datos guardados">Reiniciar</button></div></header>
-      <section id="view-dashboard" class="view active">
-        <div class="hero-grid">
-          <article class="hero-card"><div class="eyebrow">MEJOR TÁCTICA ACTUAL</div><div class="hero-score-row"><div><h2 id="best-formation-name">Sin plantilla</h2><p id="best-formation-reason">Carga tu plantilla para comparar formaciones automáticamente.</p></div><div id="best-formation-score" class="score-ring muted">—</div></div><button class="primary-btn" data-go="import" id="hero-action">Cargar plantilla</button></article>
-          <article class="metric-card"><span>Mejor jugador</span><strong id="metric-best-player">—</strong><small id="metric-best-player-detail">Sin datos</small></article>
-          <article class="metric-card"><span>Mayor necesidad</span><strong id="metric-need">—</strong><small id="metric-need-detail">Sin datos</small></article>
-          <article class="metric-card"><span>Valor de plantilla</span><strong id="metric-value">$0</strong><small id="metric-value-detail">0 jugadores</small></article>
-        </div>
-        <div class="section-grid two">
-          <article class="panel"><div class="panel-head"><div><span class="eyebrow">RANKING</span><h3>Formaciones</h3></div><button class="text-btn" data-go="tactics">Abrir tácticas →</button></div><div id="formation-ranking" class="formation-ranking empty-state">Carga la plantilla para generar el ranking.</div></article>
-          <article class="panel"><div class="panel-head"><div><span class="eyebrow">DIAGNÓSTICO</span><h3>Fortaleza por línea</h3></div></div><div id="line-strengths" class="strength-list empty-state">Todavía no hay jugadores analizados.</div></article>
-        </div>
-      </section>
-      <section id="view-import" class="view">
-        <div class="section-grid import-grid">
-          <article class="panel import-panel"><div class="panel-head"><div><span class="eyebrow">PASO 1</span><h3>Pega la plantilla de ManagerZone</h3></div><button id="load-demo-btn" class="text-btn">Usar ejemplo</button></div><p class="help">Acepta la tabla copiada desde ManagerZone o el texto pegado directamente. La app conserva los valores originales y calcula las notas después.</p><textarea id="roster-input" spellcheck="false" placeholder="Pega aquí la plantilla completa de ManagerZone..."></textarea><div class="import-actions"><button id="analyze-btn" class="primary-btn">Analizar plantilla</button><button id="clear-input-btn" class="ghost-btn">Limpiar</button><span id="import-message" class="import-message"></span></div></article>
-          <article class="panel rules-panel"><span class="eyebrow">MOTOR DE EQUIPO 0–10</span><h3>Cómo se elige la táctica</h3><div class="rule-card striker"><b>PUESTO</b><span>Calidad del jugador en su función real</span><strong>30%</strong></div><div class="rule-card mid"><b>COHESIÓN</b><span>Cómo se complementan dentro de cada línea</span><strong>20%</strong></div><div class="rule-card def"><b>CONEXIÓN</b><span>Defensa → medio → ataque</span><strong>20%</strong></div><div class="rule-card gk"><b>ATAQUE/DEFENSA</b><span>Cómo crea ocasiones y cómo protege espacios</span><strong>30%</strong></div><p class="microcopy">La formación ya no gana por sumar once notas: debe hacer funcionar al equipo completo.</p></article>
-        </div>
-      </section>
+      <section id="view-dashboard" class="view active"><div class="hero-grid"><article class="hero-card"><div class="eyebrow">MEJOR TÁCTICA ACTUAL</div><div class="hero-score-row"><div><h2 id="best-formation-name">Sin plantilla</h2><p id="best-formation-reason">Carga tu plantilla para comparar formaciones automáticamente.</p></div><div id="best-formation-score" class="score-ring muted">—</div></div><button class="primary-btn" data-go="import" id="hero-action">Cargar plantilla</button></article><article class="metric-card"><span>Mejor jugador</span><strong id="metric-best-player">—</strong><small id="metric-best-player-detail">Sin datos</small></article><article class="metric-card"><span>Mayor necesidad</span><strong id="metric-need">—</strong><small id="metric-need-detail">Sin datos</small></article><article class="metric-card"><span>Valor de plantilla</span><strong id="metric-value">$0</strong><small id="metric-value-detail">0 jugadores</small></article></div><div class="section-grid two"><article class="panel"><div class="panel-head"><div><span class="eyebrow">RANKING</span><h3>Formaciones</h3></div><button class="text-btn" data-go="tactics">Abrir tácticas →</button></div><div id="formation-ranking" class="formation-ranking empty-state">Carga la plantilla para generar el ranking.</div></article><article class="panel"><div class="panel-head"><div><span class="eyebrow">DIAGNÓSTICO</span><h3>Fortaleza por línea</h3></div></div><div id="line-strengths" class="strength-list empty-state">Todavía no hay jugadores analizados.</div></article></div></section>
+      <section id="view-import" class="view"><div class="section-grid import-grid"><article class="panel import-panel"><div class="panel-head"><div><span class="eyebrow">PASO 1</span><h3>Pega la plantilla de ManagerZone</h3></div><button id="load-demo-btn" class="text-btn">Usar ejemplo</button></div><p class="help">Acepta la tabla copiada desde ManagerZone o el texto pegado directamente. La app conserva los valores originales y calcula las notas después.</p><textarea id="roster-input" spellcheck="false" placeholder="Pega aquí la plantilla completa de ManagerZone..."></textarea><div class="import-actions"><button id="analyze-btn" class="primary-btn">Analizar plantilla</button><button id="clear-input-btn" class="ghost-btn">Limpiar</button><span id="import-message" class="import-message"></span></div></article><article class="panel rules-panel"><span class="eyebrow">MOTOR DE EQUIPO 0–10</span><h3>Cómo se elige la táctica</h3><div class="rule-card striker"><b>PUESTO</b><span>Calidad del jugador en su función real</span><strong>30%</strong></div><div class="rule-card mid"><b>COHESIÓN</b><span>Cómo se complementan dentro de cada línea</span><strong>20%</strong></div><div class="rule-card def"><b>CONEXIÓN</b><span>Defensa → medio → ataque</span><strong>20%</strong></div><div class="rule-card gk"><b>ATAQUE/DEFENSA</b><span>Cómo crea ocasiones y cómo protege espacios</span><strong>30%</strong></div><p class="microcopy">La formación ya no gana por sumar once notas: debe hacer funcionar al equipo completo.</p></article></div></section>
       <section id="view-squad" class="view"><article class="panel"><div class="panel-head squad-head"><div><span class="eyebrow">ANÁLISIS POR POSICIÓN</span><h3>Plantilla</h3></div><div class="table-tools"><input id="player-search" type="search" placeholder="Buscar jugador..." /><select id="role-filter"><option value="ALL">Todas las posiciones</option><option value="POR">Porteros</option><option value="DEF">Defensas</option><option value="VOL">Volantes</option><option value="DEL">Delanteros</option></select></div></div><div class="table-wrap"><table class="players-table"><thead><tr><th>Jugador</th><th>Edad</th><th>Valor</th><th>POR</th><th>DEF</th><th>VOL</th><th>DEL</th><th>Mejor rol</th></tr></thead><tbody id="players-body"></tbody></table><div id="squad-empty" class="empty-state large">Carga una plantilla para analizar jugadores.</div></div></article></section>
       <section id="view-tactics" class="view"><div class="tactics-layout"><article class="panel tactic-sidebar-panel"><div class="panel-head"><div><span class="eyebrow">COMPARADOR</span><h3>Formaciones</h3></div></div><div id="formation-list" class="formation-list"></div><div class="divider"></div><div class="tactic-score-box"><span>Nota de la táctica</span><strong id="current-tactic-score">—</strong><small id="current-tactic-explanation">Carga una plantilla primero.</small></div><button id="reset-lineup-btn" class="ghost-btn full">Restaurar mejor XI</button></article><article class="pitch-card"><div class="pitch-toolbar"><div><span class="eyebrow">EDITOR DE TÁCTICA</span><h3 id="pitch-formation-title">—</h3></div><span class="drag-tip">Arrastra jugadores para intercambiar posiciones</span></div><div id="pitch" class="pitch"><div class="pitch-line center"></div><div class="center-circle"></div><div class="penalty-area top"></div><div class="penalty-area bottom"></div><div id="pitch-slots" class="pitch-slots"></div></div></article><article class="panel bench-panel"><div class="panel-head"><div><span class="eyebrow">BANCO MZ</span><h3>Suplentes</h3></div></div><p class="help compact">Orden funcional: POR → DEF → VOL → DEL → Comodín.</p><div id="bench-list" class="bench-list"></div></article></div></section>
       <section id="view-youth" class="view"></section><section id="view-finance" class="view"></section><section id="view-needs" class="view"></section><section id="view-market" class="view"></section>
     </main>
   </div>
   <div id="player-modal" class="modal-backdrop hidden"><div class="modal"><button id="modal-close" class="modal-close">×</button><div id="modal-content"></div></div></div>
-  <script src="engine.js"></script>
-  <script src="spatial-engine.js"></script>
-  <script src="team-engine.js"></script>
-  <script src="app.js"></script>
-  <script src="parser-patch.js"></script>
-  <script src="core-audit.js"></script>
-  <script src="tactics-visibility.js"></script>
-  <script src="slot-aware-ui.js"></script>
-  <script src="needs-minimal.js"></script>
-  <script src="market-parser.js"></script>
-  <script src="youth-scout.js"></script>
-  <script src="finance-parser.js"></script>
-  <script src="finance-engine.js"></script>
-  <script src="slot-integration.js"></script>
-  <script src="slot-integration-sync.js"></script>
-  <script src="spatial-tools.js"></script>
-  <script src="finance-view.js"></script>
-  <script src="finance-insights.js"></script>
-  <script src="team-tactics-ui.js"></script>
+  <script src="engine.js"></script><script src="spatial-engine.js"></script><script src="team-engine.js"></script><script src="team-engine-tuning.js"></script><script src="app.js"></script><script src="parser-patch.js"></script><script src="core-audit.js"></script><script src="tactics-visibility.js"></script><script src="slot-aware-ui.js"></script><script src="needs-minimal.js"></script><script src="market-parser.js"></script><script src="youth-scout.js"></script><script src="finance-parser.js"></script><script src="finance-engine.js"></script><script src="slot-integration.js"></script><script src="slot-integration-sync.js"></script><script src="spatial-tools.js"></script><script src="finance-view.js"></script><script src="finance-insights.js"></script><script src="team-tactics-ui.js"></script>
 </body>
 </html>
