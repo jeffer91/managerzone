@@ -1,6 +1,7 @@
 const assert=require('assert');
 const fs=require('fs');
 const path=require('path');
+const {execFileSync}=require('child_process');
 const engine=require('../src/engine.js');
 require('../src/spatial-engine.js').install(engine);
 require('../src/team-engine.js').install(engine);
@@ -51,6 +52,7 @@ const html=fs.readFileSync(path.join(__dirname,'../src/index.html'),'utf8');
 assert(html.includes('team-decisions-engine.js')&&html.includes('team-decisions-ui.js'),'los módulos de decisiones deben cargarse en la app');
 assert(html.indexOf('team-decisions-engine.js')<html.indexOf('app.js'),'el motor de decisiones debe estar disponible antes de la app');
 assert(html.indexOf('team-tactics-ui.js')<html.indexOf('team-decisions-ui.js'),'la integración de decisiones debe ser la capa final de UI');
+for(const rel of ['src/team-decisions-engine.js','src/team-decisions-ui.js','src/slot-integration.js'])execFileSync(process.execPath,['--check',path.join(__dirname,'..',rel)],{stdio:'pipe'});
 const ui=fs.readFileSync(path.join(__dirname,'../src/team-decisions-ui.js'),'utf8');
 const market=fs.readFileSync(path.join(__dirname,'../src/slot-integration.js'),'utf8');
 assert(ui.includes('CUELLO DE BOTELLA')&&ui.includes('Orden MZ: POR')&&ui.includes('saleCandidates'),'la UI debe integrar necesidad, banco MZ y ventas');
