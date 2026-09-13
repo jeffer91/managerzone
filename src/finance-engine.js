@@ -5,7 +5,15 @@ const api=factory();if(typeof module==='object'&&module.exports)module.exports=a
 'use strict';
 const n=v=>Number(v)||0;
 const pct=v=>Math.max(0,Math.min(999,Math.round((Number(v)||0)*10)/10));
+const DEFAULT_SNAPSHOT_MAX_AGE_MS=24*60*60*1000;
 function median(values){const a=(values||[]).map(n).sort((x,y)=>x-y);if(!a.length)return 0;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function snapshotStatus(snapshot,now=Date.now(),maxAgeMs=DEFAULT_SNAPSHOT_MAX_AGE_MS){
+ const hasBalance=!!snapshot?.hasAvailableBalance&&Number.isFinite(Number(snapshot?.availableBalance));
+ const capturedAt=Number(snapshot?.capturedAt)||0;
+ const ageMs=capturedAt?Math.max(0,Number(now)-capturedAt):Infinity;
+ const fresh=hasBalance&&capturedAt>0&&ageMs<=Math.max(0,Number(maxAgeMs)||0);
+ return{hasBalance,balance:hasBalance?n(snapshot.availableBalance):null,capturedAt:capturedAt||null,ageMs,fresh,stale:hasBalance&&!fresh};
+}
 function saleCandidates(players,lineup=[]){
  const list=(players||[]).filter(Boolean),starters=new Set((lineup||[]).filter(Boolean).map(p=>p.uid)),med=median(list.map(p=>p.salary)),avg=list.length?list.reduce((s,p)=>s+n(p.ratings?.bestScore),0)/list.length:0;
  return list.filter(p=>!starters.has(p.uid)&&n(p.salary)>=med&&n(p.ratings?.bestScore)<=avg+.25).map(p=>({uid:p.uid,name:p.name,role:p.ratings?.bestRole||'—',rating:n(p.ratings?.bestScore),salary:n(p.salary),value:n(p.value),age:n(p.age),reason:'Suplente con sueldo relevante y aporte por debajo del promedio de la plantilla.'})).sort((a,b)=>b.salary-a.salary||a.rating-b.rating).slice(0,3);
@@ -24,5 +32,5 @@ function analyze(report,context={}){
  if(safeBudget!=null)recommendations.push({level:safeBudget>0?'good':'warn',title:safeBudget>0?'Presupuesto financiero disponible':'Protege tu caja',text:safeBudget>0?`Con una reserva de ${reserveWeeks} semanas, el máximo financiero es ${Math.round(safeBudget)} USD.`:`El saldo no cubre una reserva de ${reserveWeeks} semanas de gastos.`});
  return{status,accountingResult:accounting,ordinaryIncome:ordinary,extraordinaryIncome:extra,operatingResult:operating,weeklyCost:weekly,salaryCost:salaries,salaryShare,extraordinaryShare:extraShare,ordinaryCoverage:coverage,rosterSalary,salaryDelta,reserveWeeks,reserve,safeBudget,saleCandidates:saleCandidates(context.players,context.lineup),recommendations};
 }
-return{median,saleCandidates,analyze};
+return{DEFAULT_SNAPSHOT_MAX_AGE_MS,median,snapshotStatus,saleCandidates,analyze};
 });
