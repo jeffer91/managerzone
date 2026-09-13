@@ -1,6 +1,8 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 
+const APP_ICON = path.join(__dirname, '..', 'assets', 'managerzone-icon.png');
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -9,6 +11,7 @@ function createWindow() {
     minHeight: 720,
     backgroundColor: '#07110c',
     title: 'MZ Tactical Lab',
+    icon: APP_ICON,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -20,6 +23,8 @@ function createWindow() {
 
   win.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
 }
+
+app.setName('MZ Tactical Lab');
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
