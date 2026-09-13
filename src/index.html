@@ -29,8 +29,8 @@
       </nav>
 
       <div class="sidebar-note">
-        <small>Regla del motor</small>
-        <p><b>DC</b> Remates · <b>EI/ED</b> Remates + pases · <b>MC</b> Pases · <b>DFC</b> Entradas</p>
+        <small>Motor espacial</small>
+        <p>La nota cambia por <b>zona</b>: centro, banda, altura y función real.</p>
       </div>
     </aside>
 
@@ -66,12 +66,12 @@
             <div class="import-actions"><button id="analyze-btn" class="primary-btn">Analizar plantilla</button><button id="clear-input-btn" class="ghost-btn">Limpiar</button><span id="import-message" class="import-message"></span></div>
           </article>
           <article class="panel rules-panel">
-            <span class="eyebrow">MOTOR 0–10</span><h3>Cómo se evalúa cada posición</h3>
-            <div class="rule-card striker"><b>DC</b><span>Remates manda</span><strong>PRINCIPAL</strong></div>
-            <div class="rule-card mid"><b>EI/ED</b><span>Remates + pases + control</span><strong>POSICIONAL</strong></div>
-            <div class="rule-card def"><b>DFC/LAT</b><span>Entradas con función distinta</span><strong>POSICIONAL</strong></div>
-            <div class="rule-card gk"><b>POR</b><span>Atajando manda</span><strong>PRINCIPAL</strong></div>
-            <p class="microcopy">La nota cambia según el lugar exacto del jugador en la cancha, no solo por línea.</p>
+            <span class="eyebrow">MOTOR ESPACIAL 0–10</span><h3>Cómo cambia la valoración</h3>
+            <div class="rule-card striker"><b>DC</b><span>Remates domina; creación sigue contando</span><strong>CENTRO</strong></div>
+            <div class="rule-card mid"><b>EI/ED</b><span>Remates primero + pases, control y velocidad</span><strong>BANDA</strong></div>
+            <div class="rule-card def"><b>VOL</b><span>Más atrás defiende; más arriba crea y remata</span><strong>ALTURA</strong></div>
+            <div class="rule-card gk"><b>PIE</b><span>Diestro/zurdo influye en los costados</span><strong>PERFIL</strong></div>
+            <p class="microcopy">La nota cambia de forma continua según el lugar real del jugador en la cancha.</p>
           </article>
         </div>
       </section>
@@ -105,6 +105,7 @@
   <div id="player-modal" class="modal-backdrop hidden"><div class="modal"><button id="modal-close" class="modal-close">×</button><div id="modal-content"></div></div></div>
 
   <script src="engine.js"></script>
+  <script src="spatial-engine.js"></script>
   <script src="app.js"></script>
   <script src="parser-patch.js"></script>
   <script src="core-audit.js"></script>
@@ -117,6 +118,8 @@
   <script src="finance-engine.js"></script>
   <script src="slot-integration.js"></script>
   <script src="slot-integration-sync.js"></script>
+  <script src="spatial-tools.js"></script>
   <script src="finance-view.js"></script>
+  <script src="finance-insights.js"></script>
 </body>
 </html>
